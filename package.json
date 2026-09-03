@@ -1,0 +1,21 @@
+{
+  "name": "tecnomind-fiat",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@tecnomind/webapp",
+    "dev:admin": "npm run dev --workspace=@tecnomind/admin",
+    "dev:all": "npm run dev --workspace=@tecnomind/webapp & npm run dev --workspace=@tecnomind/admin",
+    "build": "npm run build --workspaces --if-present",
+    "build:webapp": "npm run build --workspace=@tecnomind/webapp",
+    "build:admin": "npm run build --workspace=@tecnomind/admin",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

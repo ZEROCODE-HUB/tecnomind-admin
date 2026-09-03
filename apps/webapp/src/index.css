@@ -1,0 +1,274 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@tailwind components;
+@tailwind utilities;
+
+
+
+@layer base {
+  :root {
+    /* Magnate Brand Colors */
+    --background: 210 20% 98%;
+    --foreground: 213 80% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 80% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 80% 14%;
+
+    /* Primary: Deep Blue #0A2540 */
+    --primary: 213 80% 14%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Lighter blue tones */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 213 80% 14%;
+
+    /* Accent: Action Blue #2F80ED */
+    --accent: 214 84% 56%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Success: Green #27AE60 */
+    --success: 145 63% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --muted: 210 20% 94%;
+    --muted-foreground: 213 30% 45%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 214 84% 56%;
+
+    --radius: 0.75rem;
+
+    /* Custom Magnate tokens */
+    --gradient-hero: linear-gradient(135deg, hsl(213 80% 14%) 0%, hsl(213 70% 22%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(214 84% 56%) 0%, hsl(214 84% 46%) 100%);
+    --shadow-card: 0 4px 24px -4px hsl(213 80% 14% / 0.08);
+    --shadow-elevated: 0 12px 40px -8px hsl(213 80% 14% / 0.15);
+    --shadow-glow: 0 0 40px hsl(214 84% 56% / 0.2);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 213 80% 8%;
+    --foreground: 210 20% 98%;
+
+    --card: 213 70% 12%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 213 70% 12%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 213 80% 14%;
+
+    --secondary: 213 50% 18%;
+    --secondary-foreground: 210 20% 98%;
+
+    --accent: 214 84% 56%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 145 63% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --muted: 213 50% 16%;
+    --muted-foreground: 210 20% 75%;
+
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 213 50% 22%;
+    --input: 213 50% 22%;
+    --ring: 214 84% 56%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: hsl(var(--background));
+    /* Force background color */
+  }
+
+  /* Fix for Radix UI / Scroll Lock - Comentado para evitar saltos de layout
+  body[data-scroll-locked],
+  html[data-scroll-locked] {
+    padding-right: 0px !important;
+    background-color: hsl(var(--background)) !important;
+  } 
+  */
+
+  html {
+    @apply bg-background;
+    background-color: hsl(var(--background));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Fix for browser autofill in dark mode */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-transition: background-color 5000s ease-in-out 0s;
+    transition: background-color 5000s ease-in-out 0s;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    caret-color: hsl(var(--foreground));
+    box-shadow: 0 0 0px 1000px hsl(var(--background)) inset !important;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl;
+    box-shadow: var(--shadow-card);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--success)) 100%);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.8s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes scanLine {
+
+    0%,
+    100% {
+      top: 8px;
+    }
+
+    50% {
+      top: calc(100% - 8px);
+    }
+  }
+
+  .animate-scan-line {
+    animation: scanLine 2s ease-in-out infinite;
+  }
+}
