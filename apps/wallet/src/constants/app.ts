@@ -3,7 +3,7 @@
  */
 
 // Autenticación y seguridad
-export const PIN_LENGTH = 4;
+export const PIN_LENGTH = 6;
 export const OTP_LENGTH = 6;
 export const OTP_COUNTDOWN_SECONDS = 120;
 export const OTP_MAX_ATTEMPTS = 3;

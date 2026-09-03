@@ -127,3 +127,60 @@ Los cinco ataques quedaron verificados como bloqueados (HTTP 403), y lo legítim
 
 El log de auditoría es inmutable por diseño: hay política de INSERT y de SELECT,
 ninguna de UPDATE ni DELETE. Nadie puede alterarlo, tampoco un admin.
+
+---
+
+## Fase 3 — Autenticación de la app (migración 00021)
+
+### Decisión: el PIN es la credencial, y vive en un solo lugar
+
+Magnate guardaba **dos** secretos para la misma identidad: `users.pin_hash`
+y, en `user_auth_credentials`, una contraseña automática **cifrada de forma
+reversible**. Dos superficies de ataque, una de ellas descifrable.
+
+Acá la credencial es una sola y vive en **Supabase Auth**, que la guarda con
+bcrypt y ya trae rotación de tokens, rate limiting por IP y revocación de
+sesiones. Esa credencial es el PIN.
+
+Consecuencias asumidas:
+- **El PIN pasa de 4 a 6 dígitos.** Con 4 son 10.000 combinaciones, muy poco
+  para ser la única credencial; con 6 son 1.000.000.
+- `users.pin_hash` y `user_auth_credentials` quedan **sin usar**, marcadas con
+  un `COMMENT` en la base para que nadie vuelva a escribir ahí.
+
+**Limitación conocida:** un PIN de 6 dígitos sigue siendo débil comparado con
+una contraseña. La defensa de fondo es el rate limiting por IP de Supabase más
+el registro de intentos. Si el negocio lo requiere, la vía correcta es una Edge
+Function que valide el PIN server-side con bloqueo por cuenta y recién entonces
+emita la sesión. Queda planteado, no implementado, porque cambia el flujo.
+
+### Otras piezas
+
+- `login_attempts` — intentos de acceso. Solo se insertan; los lee el backoffice
+  con permiso sobre `alertas`. Un cliente no puede leerlos: expondría qué
+  cuentas existen.
+- `check_login_blocked()` — 5 fallos en 15 minutos bloquean. Responde **igual
+  para cuentas inexistentes**, para no convertirse en un enumerador de usuarios.
+- `can_register()` — reemplaza a `check_user_exists()` de cara al cliente.
+  Aquella devolvía *qué* campo estaba repetido, lo que permitía enumerar
+  documentos y CUITs de clientes reales. Esta responde solo sí o no.
+
+## ⚠️ Pendiente de configuración: SMTP
+
+El proyecto **no tiene SMTP propio** y usa el de Supabase, limitado a
+**2 emails por hora**. Con la confirmación de email activada
+(`mailer_autoconfirm: false`, el valor actual), el registro público devuelve
+`429 over_email_send_rate_limit` a partir del tercer alta de cada hora.
+
+Hay que elegir una de estas dos, desde el dashboard de Supabase:
+
+1. **Configurar un SMTP propio** (Resend, SendGrid, SES). Es lo correcto para
+   producción y mantiene la confirmación de email.
+2. **Desactivar la confirmación** (`mailer_autoconfirm: true`). El usuario entra
+   directo tras registrarse. La verificación de identidad real es el KYC
+   (`kyc_verifications`), que sigue en `pending`; el email solo confirma que la
+   dirección existe.
+
+Hasta que se resuelva, el registro público está limitado a 2 altas por hora.
+El token de acceso disponible no tiene privilegios para cambiar esta
+configuración: hay que hacerlo desde el dashboard.

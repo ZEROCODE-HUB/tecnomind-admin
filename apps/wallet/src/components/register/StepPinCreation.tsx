@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Delete, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PIN_LENGTH } from '@/constants/app';
 
 interface StepPinCreationProps {
   onComplete: (pin: string) => void;
   onBack: () => void;
 }
-
-const PIN_LENGTH = 4;
 
 // Función para mezclar array (Fisher-Yates shuffle)
 const shuffleArray = (array: number[]): number[] => {
@@ -102,8 +101,8 @@ const StepPinCreation = ({ onComplete, onBack }: StepPinCreationProps) => {
       </h2>
       <p className="text-muted-foreground text-sm text-center mb-8">
         {isConfirmPhase 
-          ? 'Ingresa nuevamente tu PIN de 4 dígitos' 
-          : 'Ingresa un PIN de 4 dígitos que usarás para acceder'
+          ? `Ingresa nuevamente tu PIN de ${PIN_LENGTH} dígitos` 
+          : `Ingresa un PIN de ${PIN_LENGTH} dígitos que usarás para acceder`
         }
       </p>
 

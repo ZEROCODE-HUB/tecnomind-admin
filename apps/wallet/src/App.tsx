@@ -30,6 +30,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -48,22 +49,22 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/transfer" element={<Transfer />} />
-              <Route path="/movements" element={<Movements />} />
-              <Route path="/statistics" element={<Statistics />} />
-              <Route path="/api-config" element={<ApiConfig />} />
-              <Route path="/web-access" element={<WebAccess />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/scan-qr" element={<ScanQR />} />
-              <Route path="/confirm-pay" element={<ConfirmPay />} />
-              <Route path="/success-pay" element={<SuccessPay />} />
-              <Route path="/error-pay" element={<ErrorPay />} />
-              <Route path="/linked-devices" element={<LinkedDevices />} />
-              <Route path="/share-cvu" element={<ShareCVU />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/apis-wiki" element={<ApisWiki />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
+              <Route path="/movements" element={<ProtectedRoute><Movements /></ProtectedRoute>} />
+              <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
+              <Route path="/api-config" element={<ProtectedRoute><ApiConfig /></ProtectedRoute>} />
+              <Route path="/web-access" element={<ProtectedRoute><WebAccess /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/scan-qr" element={<ProtectedRoute><ScanQR /></ProtectedRoute>} />
+              <Route path="/confirm-pay" element={<ProtectedRoute><ConfirmPay /></ProtectedRoute>} />
+              <Route path="/success-pay" element={<ProtectedRoute><SuccessPay /></ProtectedRoute>} />
+              <Route path="/error-pay" element={<ProtectedRoute><ErrorPay /></ProtectedRoute>} />
+              <Route path="/linked-devices" element={<ProtectedRoute><LinkedDevices /></ProtectedRoute>} />
+              <Route path="/share-cvu" element={<ProtectedRoute><ShareCVU /></ProtectedRoute>} />
+              <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+              <Route path="/apis-wiki" element={<ProtectedRoute><ApisWiki /></ProtectedRoute>} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/about" element={<About />} />

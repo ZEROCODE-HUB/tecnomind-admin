@@ -10,6 +10,7 @@ import PinIndicator from "@/components/login/PinIndicator";
 import PinKeypad from "@/components/login/PinKeypad";
 import { useToast } from "@/hooks/use-toast";
 import { PIN_LENGTH } from "@/constants/app";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Datos para las tarjetas de características
 const features = [
@@ -33,10 +34,10 @@ const features = [
 const Login = () => {
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { loginConDetalle } = useAuth();
 
   const handleDigitPress = (digit: string) => {
     if (pin.length < PIN_LENGTH) {
@@ -60,38 +61,36 @@ const Login = () => {
       return;
     }
 
-    // Validación condicional: PIN para móvil, contraseña para escritorio
-    const isMobile = window.innerWidth < 768;
-    
-    if (isMobile && pin.length !== PIN_LENGTH) {
+    // El PIN es la credencial en cualquier dispositivo: antes se pedía
+    // contraseña en escritorio y PIN en móvil, pero esa contraseña no
+    // existía en ningún lado.
+    if (pin.length !== PIN_LENGTH) {
       toast({
         title: "Error",
-        description: "Por favor ingrese su PIN de 4 dígitos.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isMobile && !password.trim()) {
-      toast({
-        title: "Error",
-        description: "Por favor ingrese su contraseña.",
+        description: `Por favor ingrese su PIN de ${PIN_LENGTH} dígitos.`,
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
+    const resultado = await loginConDetalle(email, pin);
+    setIsLoading(false);
 
-    // Simular llamada a API
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    if (!resultado.ok) {
+      setPin("");
+      toast({
+        title: "No pudimos iniciar sesión",
+        description: resultado.error,
+        variant: "destructive",
+      });
+      return;
+    }
 
     toast({
       title: "Bienvenido",
       description: "Has iniciado sesión correctamente.",
     });
-    
-    setIsLoading(false);
     navigate("/dashboard");
   };
 
@@ -140,38 +139,16 @@ const Login = () => {
             </Label>
           </div>
 
-          {/* Password Section - Desktop Only */}
-          <div className="hidden md:block px-6 pb-4">
-            <Label htmlFor="password" className="flex flex-col w-full">
-              <span className="text-muted-foreground text-sm font-medium leading-normal pb-2 ml-1">
-                Contraseña
-              </span>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ingrese su contraseña"
-                  className="h-12 pl-10 rounded-xl bg-muted border-border focus:border-accent"
-                />
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              </div>
-            </Label>
-          </div>
-
-          {/* PIN Section - Mobile Only */}
-          <div className="bg-card rounded-t-3xl border-t border-border mt-2 flex-1 p-6 flex flex-col items-center md:border-t-0 md:mt-0 md:pt-2">
-            {/* PIN Title - Mobile Only */}
-            <div className="flex items-center gap-2 mb-4 md:hidden">
+          {/* PIN: es la credencial en todos los dispositivos */}
+          <div className="bg-card rounded-t-3xl border-t border-border mt-2 flex-1 p-6 flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-4">
               <Lock className="h-4 w-4 text-accent" />
               <p className="text-foreground text-sm font-semibold leading-normal text-center">
-                Ingrese su PIN de 4 dígitos
+                Ingrese su PIN de {PIN_LENGTH} dígitos
               </p>
             </div>
 
-            {/* PIN Indicators - Mobile Only */}
-            <div className="flex justify-center w-full mb-8 md:hidden">
+            <div className="flex justify-center w-full mb-8">
               <div className="bg-muted border border-border rounded-xl px-6 py-4 shadow-inner flex gap-4">
                 {Array.from({ length: PIN_LENGTH }).map((_, index) => (
                   <PinIndicator key={index} filled={index < pin.length} />
@@ -179,8 +156,7 @@ const Login = () => {
               </div>
             </div>
 
-            {/* PIN Keypad - Mobile Only */}
-            <div className="mb-8 md:hidden">
+            <div className="mb-8">
               <PinKeypad
                 onDigitPress={handleDigitPress}
                 onBackspace={handleBackspace}

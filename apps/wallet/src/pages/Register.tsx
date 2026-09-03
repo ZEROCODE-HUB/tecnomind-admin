@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import ProgressIndicator from '@/components/register/ProgressIndicator';
 import StepFormData from '@/components/register/StepFormData';
+import { registrar } from '@/lib/auth-service';
 import StepPinCreation from '@/components/register/StepPinCreation';
 import StepConfirmation from '@/components/register/StepConfirmation';
 import Logo from '@/components/Logo';
@@ -30,6 +31,7 @@ const Register = () => {
     cuit: '',
   });
   const [pin, setPin] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field: keyof FormData) => (
     e: React.ChangeEvent<HTMLInputElement>
@@ -57,13 +59,29 @@ const Register = () => {
     setStep(2);
   };
 
-  const handlePinComplete = (createdPin: string) => {
+  const handlePinComplete = async (createdPin: string) => {
     setPin(createdPin);
-    // Aquí se enviaría la información al backend
-    console.log('Registro completo:', { ...formData, pin: createdPin });
+    setIsSubmitting(true);
+
+    // El alta crea la cuenta en Supabase Auth; el trigger
+    // on_auth_user_created genera el perfil, la cuenta bancaria, los
+    // límites y el QR estático.
+    const resultado = await registrar(formData, createdPin);
+    setIsSubmitting(false);
+
+    if (!resultado.ok) {
+      toast({
+        variant: "destructive",
+        title: "No pudimos crear tu cuenta",
+        description: resultado.error,
+      });
+      setStep(1);
+      return;
+    }
+
     toast({
-      title: "PIN creado correctamente",
-      description: "Tu cuenta está casi lista.",
+      title: "Cuenta creada",
+      description: "Ya podés operar con tu cuenta.",
     });
     setStep(3);
   };
