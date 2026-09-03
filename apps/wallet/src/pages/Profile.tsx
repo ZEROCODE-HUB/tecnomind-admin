@@ -25,7 +25,7 @@ const Profile = () => {
   ]);
   
   const [contactFields, setContactFields] = useState([
-    { label: "Email", value: user?.email || "usuario@magnate.com", editable: true },
+    { label: "Email", value: user?.email || "usuario@tecnomind.com", editable: true },
     { label: "Móvil", value: user?.phone || "+54 9 11 1234 5678", editable: true },
   ]);
 
@@ -144,7 +144,7 @@ const Profile = () => {
             Cerrar Sesión
           </button>
           <p className="text-center text-xs text-muted-foreground mt-4 font-mono">
-            Magnate v2.4.0 (Build 892) • Enterprise Grade Security
+            TecnoMind v2.4.0 (Build 892) • Enterprise Grade Security
           </p>
         </div>
       </div>

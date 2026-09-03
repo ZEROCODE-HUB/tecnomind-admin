@@ -28,7 +28,7 @@ const StepFormData = ({ formData, onChange, onContinue, isValid }: StepFormDataP
           Datos Personales
         </h3>
         <p className="text-muted-foreground text-sm font-normal leading-relaxed">
-          Completa tu información para configurar tu perfil de inversor en Magnate.
+          Completa tu información para configurar tu perfil de inversor en TecnoMind.
         </p>
       </div>
 
@@ -114,7 +114,7 @@ const StepFormData = ({ formData, onChange, onContinue, isValid }: StepFormDataP
             <Link to="#" className="text-accent hover:underline">
               Política de Privacidad
             </Link>{' '}
-            de Magnate.
+            de TecnoMind.
           </p>
         </div>
       </form>

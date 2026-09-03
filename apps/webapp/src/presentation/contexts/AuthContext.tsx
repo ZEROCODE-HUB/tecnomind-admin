@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Throttle localStorage writes to prevent performance issues
             if (!throttleTimeout) {
                 throttleTimeout = setTimeout(() => {
-                    localStorage.setItem('magnate_last_activity', now.toString());
+                    localStorage.setItem('tecnomind_last_activity', now.toString());
                     throttleTimeout = null;
                 }, 2000); // Write at most every 2 seconds
             }
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const intervalId = setInterval(() => {
             if (isAuthenticated) {
                 // Get the most recent activity across all tabs
-                const storedActivity = parseInt(localStorage.getItem('magnate_last_activity') || '0', 10);
+                const storedActivity = parseInt(localStorage.getItem('tecnomind_last_activity') || '0', 10);
                 const mostRecent = Math.max(lastActivityRef.current, storedActivity);
                 
                 const now = Date.now();

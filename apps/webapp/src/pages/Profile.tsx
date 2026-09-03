@@ -93,7 +93,7 @@ const Profile = () => {
             Cerrar Sesión
           </button>
           <p className="text-center text-xs text-muted-foreground mt-4 font-mono">
-            Magnate Web v1.0.0 • Secure Banking
+            TecnoMind Web v1.0.0 • Secure Banking
           </p>
         </div>
       </div>

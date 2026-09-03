@@ -111,7 +111,7 @@ const ApisWiki = () => {
                 v1.0
               </div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                Documentación de API Magnate
+                Documentación de API TecnoMind
               </h1>
               <p className="text-lg text-muted-foreground">
                 Integra tu negocio con nuestra API RESTful. Autenticación segura, consulta de movimientos y transferencias programáticas.
@@ -249,8 +249,8 @@ const ApisWiki = () => {
               <h3 className="text-lg font-semibold text-foreground mb-2">¿Necesitás ayuda?</h3>
               <p className="text-muted-foreground text-sm">
                 Si tenés dudas sobre la integración, contactanos a{" "}
-                <a href="mailto:soporte@magnate.com" className="text-primary hover:underline">
-                  soporte@magnate.com
+                <a href="mailto:soporte@tecnomind.com" className="text-primary hover:underline">
+                  soporte@tecnomind.com
                 </a>
               </p>
             </div>

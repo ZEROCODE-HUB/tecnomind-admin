@@ -50,7 +50,7 @@ const StepConfirmation = ({ email }: StepConfirmationProps) => {
           Próximo paso
         </h4>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Por favor, confirma tu email para activar todas las funciones de tu billetera Magnate. 
+          Por favor, confirma tu email para activar todas las funciones de tu billetera TecnoMind. 
           Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
         </p>
       </div>

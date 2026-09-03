@@ -29,7 +29,7 @@ const TransactionReceiptModal = ({ transaction, onClose }: TransactionReceiptMod
   const cleanAmount = transaction.amount.replace(/[+-]/g, '');
   const handleShare = async () => {
     const shareData = {
-      title: "Comprobante de Transacción - Magnate",
+      title: "Comprobante de Transacción - TecnoMind",
       text: `${isIncome ? 'Ingreso' : 'Pago'}: ${transaction.name} por ${cleanAmount}. ID: ${transactionId}`,
       url: window.location.href
     };
@@ -47,14 +47,14 @@ const TransactionReceiptModal = ({ transaction, onClose }: TransactionReceiptMod
 
   const handleWhatsAppShare = () => {
     const text = encodeURIComponent(
-      `${isIncome ? '✅ Ingreso recibido' : '💸 Pago realizado'} con Magnate\n\n${isIncome ? 'Origen' : 'Destinatario'}: ${transaction.name}\nMonto: ${cleanAmount}\nFecha: ${transaction.dateGroup} ${transaction.time}\nID: ${transactionId}`
+      `${isIncome ? '✅ Ingreso recibido' : '💸 Pago realizado'} con TecnoMind\n\n${isIncome ? 'Origen' : 'Destinatario'}: ${transaction.name}\nMonto: ${cleanAmount}\nFecha: ${transaction.dateGroup} ${transaction.time}\nID: ${transactionId}`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
     setShowShareMenu(false);
   };
 
   const handleEmailShare = () => {
-    const subject = encodeURIComponent("Comprobante de Transacción - Magnate");
+    const subject = encodeURIComponent("Comprobante de Transacción - TecnoMind");
     const body = encodeURIComponent(
       `Comprobante de ${isIncome ? 'Ingreso' : 'Pago'}\n\n${isIncome ? 'Origen' : 'Destinatario'}: ${transaction.name}\nCategoría: ${transaction.category}\nMonto: ${cleanAmount}\nFecha: ${transaction.dateGroup} ${transaction.time}\nID de Transacción: ${transactionId}`
     );

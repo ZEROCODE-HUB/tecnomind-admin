@@ -1,61 +1,28 @@
+import logoOscuro from "@/assets/tecnomindlogo-dark.png";
+import logoBlanco from "@/assets/tecnomindlogo-white.png";
+
 interface LogoIconProps {
   className?: string;
+  /** `white` para fondos oscuros (landing, splash). */
+  variant?: "dark" | "white";
 }
 
 /**
- * Isotipo SVG de Magnate - Letra M con flecha de crecimiento
+ * Isotipo de TecnoMind.
+ *
+ * Antes era un SVG dibujado a mano con la "M" de Magnate. Se reemplaza
+ * por el logo real, el mismo archivo que ya usa el backoffice, para que
+ * las dos superficies del producto muestren la misma marca.
  */
-const LogoIcon = ({ className = "h-14 w-14" }: LogoIconProps) => {
+const LogoIcon = ({ className = "h-14 w-14", variant = "dark" }: LogoIconProps) => {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      {/* Fondo redondeado azul oscuro */}
-      <rect width="100" height="100" rx="20" className="fill-[#0A2540]" />
-      
-      {/* Pata izquierda de la M */}
-      <path
-        d="M18 75V30L32 44V75H18Z"
-        fill="white"
-      />
-      
-      {/* Diagonal izquierda de la M (hacia el centro) */}
-      <path
-        d="M18 30L50 58"
-        stroke="white"
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      
-      {/* Pata derecha de la M */}
-      <path
-        d="M68 44V75H82V30L68 44Z"
-        fill="white"
-      />
-      
-      {/* Diagonal derecha de la M - en azul claro formando la flecha */}
-      <path
-        d="M50 58L75 22"
-        stroke="#5BA3E8"
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      
-      {/* Punta de flecha */}
-      <path
-        d="M64 18H82V36"
-        stroke="#5BA3E8"
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    <img
+      src={variant === "white" ? logoBlanco : logoOscuro}
+      alt="TecnoMind"
+      // object-contain: el logo no es cuadrado y los usos heredados le
+      // pasan clases cuadradas (h-14 w-14); sin esto se deforma.
+      className={`object-contain ${className}`}
+    />
   );
 };
 

@@ -24,7 +24,7 @@ const Privacy = () => {
             </Button>
             
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-              Política de Privacidad de Datos - Magnate
+              Política de Privacidad de Datos - TecnoMind
             </h1>
             <p className="text-sm text-slate-500">
               Última actualización: Diciembre 2024
@@ -39,7 +39,7 @@ const Privacy = () => {
               </h2>
               <p className="text-slate-700 leading-relaxed">
                 En cumplimiento de la Ley Nacional N° 25.326 de Protección de Datos Personales, 
-                Magnate se compromete a proteger la privacidad de sus usuarios.
+                TecnoMind se compromete a proteger la privacidad de sus usuarios.
               </p>
             </section>
 
@@ -73,7 +73,7 @@ const Privacy = () => {
                 4. Compartir Información con Terceros
               </h2>
               <p className="text-slate-700 leading-relaxed">
-                Magnate no vende sus datos. Solo compartimos información con proveedores de 
+                TecnoMind no vende sus datos. Solo compartimos información con proveedores de 
                 infraestructura (ej: procesadores de pago) o autoridades competentes cuando 
                 exista requerimiento judicial o normativa obligatoria.
               </p>

@@ -60,7 +60,7 @@ const ForgotPassword = () => {
           <div className="flex items-center gap-2 flex-1 justify-center pr-7">
             <LogoIcon className="h-8 w-8" />
             <h1 className="text-foreground text-xl font-bold leading-tight tracking-[-0.015em]">
-              Magnate
+              TecnoMind
             </h1>
           </div>
         </header>
@@ -96,7 +96,7 @@ const ForgotPassword = () => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="ejemplo@magnate.com"
+                      placeholder="ejemplo@tecnomind.com"
                       className="h-12 pl-10 rounded-xl bg-muted border-border focus:border-accent"
                     />
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

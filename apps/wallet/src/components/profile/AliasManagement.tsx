@@ -9,8 +9,8 @@ interface AliasManagementProps {
 }
 
 const AliasManagement = ({ userCuit = "20123456789" }: AliasManagementProps) => {
-  const [alias, setAlias] = useState(`magnate.${userCuit}`);
-  const [originalAlias] = useState(`magnate.${userCuit}`);
+  const [alias, setAlias] = useState(`tecnomind.${userCuit}`);
+  const [originalAlias] = useState(`tecnomind.${userCuit}`);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<"idle" | "available" | "unavailable">("idle");
@@ -56,7 +56,7 @@ const AliasManagement = ({ userCuit = "20123456789" }: AliasManagementProps) => 
         <Input
           value={alias}
           onChange={(e) => handleAliasChange(e.target.value)}
-          placeholder="magnate.tucuit"
+          placeholder="tecnomind.tucuit"
           className="flex-1 bg-muted/50 border-border rounded-xl"
         />
         <Button

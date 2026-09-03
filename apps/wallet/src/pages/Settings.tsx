@@ -123,7 +123,7 @@ const Settings = () => {
         {/* Version Info */}
         <div className="mt-auto pt-8 pb-4">
           <p className="text-center text-xs text-muted-foreground font-mono">
-            Magnate v2.4.0 (Build 892) • Enterprise Grade Security
+            TecnoMind v2.4.0 (Build 892) • Enterprise Grade Security
           </p>
         </div>
       </div>

@@ -35,7 +35,7 @@ const About = () => {
             Transformando las finanzas de Argentina.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-            En Magnate, creemos que gestionar tu dinero debe ser tan simple como enviar un mensaje. 
+            En TecnoMind, creemos que gestionar tu dinero debe ser tan simple como enviar un mensaje. 
             Tecnología financiera al servicio de los emprendedores.
           </p>
         </div>
@@ -50,7 +50,7 @@ const About = () => {
               <div className="aspect-square max-w-md mx-auto rounded-3xl overflow-hidden bg-gradient-to-br from-primary/5 to-accent/5">
                 <img 
                   src={aboutMissionImage} 
-                  alt="Seguridad, eficacia y emprendedores - Valores de Magnate" 
+                  alt="Seguridad, eficacia y emprendedores - Valores de TecnoMind" 
                   className="w-full h-full object-cover"
                 />
               </div>

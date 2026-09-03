@@ -101,7 +101,7 @@ const Login = () => {
         <header className="flex items-center bg-card p-4 pb-2 justify-between border-b border-border">
           <LogoIcon className="h-10 w-10" />
           <h1 className="text-foreground text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">
-            Magnate
+            TecnoMind
           </h1>
         </header>
 
@@ -131,7 +131,7 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@magnate.com"
+                  placeholder="ejemplo@tecnomind.com"
                   className="h-12 pl-10 rounded-xl bg-muted border-border focus:border-accent"
                 />
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

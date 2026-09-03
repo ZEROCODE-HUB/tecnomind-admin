@@ -65,7 +65,7 @@ const HeroSection = () => {
                       <div className="w-3 h-3 rounded-full bg-success/60" />
                     </div>
                     <div className="flex-1 bg-white/10 rounded-md h-6 flex items-center px-3">
-                      <span className="text-xs text-white/50">app.magnate.com.ar</span>
+                      <span className="text-xs text-white/50">app.tecnomind.com.ar</span>
                     </div>
                   </div>
 

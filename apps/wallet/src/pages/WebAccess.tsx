@@ -75,7 +75,7 @@ const WebAccess = () => {
             <div className="flex flex-col">
               <h4 className="text-amber-500 text-sm font-bold mb-1">Zona de Seguridad</h4>
               <p className="text-muted-foreground text-xs leading-relaxed font-medium">
-                Esta contraseña permite el acceso directo a tu cuenta Magnate vía navegadores web. Mantenla segura.
+                Esta contraseña permite el acceso directo a tu cuenta TecnoMind vía navegadores web. Mantenla segura.
               </p>
             </div>
           </div>

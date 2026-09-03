@@ -84,7 +84,7 @@ const SuccessPay = () => {
 
         const shareData = {
           files: [file],
-          title: "Comprobante de Pago - Magnate",
+          title: "Comprobante de Pago - TecnoMind",
           text: `Pago realizado a ${paymentData.recipient.name} por ${formatCurrencyLocal(paymentData.amount)}. ID: ${paymentData.transactionId}`,
         };
 
@@ -101,14 +101,14 @@ const SuccessPay = () => {
 
   const handleWhatsAppShare = () => {
     const text = encodeURIComponent(
-      `✅ Pago realizado con Magnate\n\nDestinatario: ${paymentData.recipient.name}\nMonto: ${formatCurrencyLocal(paymentData.amount)}\nFecha: ${formatDate(paymentData.date)} ${formatTime(paymentData.date)}\nID: ${paymentData.transactionId}`
+      `✅ Pago realizado con TecnoMind\n\nDestinatario: ${paymentData.recipient.name}\nMonto: ${formatCurrencyLocal(paymentData.amount)}\nFecha: ${formatDate(paymentData.date)} ${formatTime(paymentData.date)}\nID: ${paymentData.transactionId}`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
     setShowShareMenu(false);
   };
 
   const handleEmailShare = () => {
-    const subject = encodeURIComponent("Comprobante de Pago - Magnate");
+    const subject = encodeURIComponent("Comprobante de Pago - TecnoMind");
     const body = encodeURIComponent(
       `Comprobante de Pago\n\nDestinatario: ${paymentData.recipient.name}\nCUIT: ${paymentData.recipient.cuit}\nMonto: ${formatCurrencyLocal(paymentData.amount)}\nFecha: ${formatDate(paymentData.date)} ${formatTime(paymentData.date)}\nID de Transacción: ${paymentData.transactionId}`
     );

@@ -9,7 +9,7 @@ const SecurityWarning = () => {
         <div className="flex flex-col">
           <h4 className="text-amber-500 text-sm font-bold mb-1">Zona de Seguridad</h4>
           <p className="text-muted-foreground text-xs leading-relaxed font-medium">
-            Estas credenciales otorgan acceso completo a tu cuenta Magnate. No las compartas con nadie que no sea de tu absoluta confianza.
+            Estas credenciales otorgan acceso completo a tu cuenta TecnoMind. No las compartas con nadie que no sea de tu absoluta confianza.
           </p>
         </div>
       </div>

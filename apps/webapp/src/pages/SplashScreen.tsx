@@ -22,7 +22,7 @@ const SplashScreen = () => {
 
       {/* Brand name */}
       <h1 className="relative z-10 mt-8 text-foreground text-2xl md:text-3xl font-bold uppercase tracking-[0.3em] animate-fade-in opacity-90">
-        Magnate
+        TecnoMind
       </h1>
 
       {/* Subtle loading indicator */}

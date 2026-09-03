@@ -10,9 +10,9 @@ const ShareCVU = () => {
   const { toast } = useToast();
 
   const accountData = {
-    titular: "Santiago Magnate",
+    titular: "Santiago TecnoMind",
     cvu: "0000003100012345678901",
-    alias: "magnate.startup.app",
+    alias: "tecnomind.startup.app",
   };
 
   const handleCopyData = async () => {

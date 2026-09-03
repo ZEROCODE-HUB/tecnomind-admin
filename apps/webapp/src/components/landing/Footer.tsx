@@ -37,7 +37,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center gap-3 text-sm text-white/60">
                 <Mail className="w-4 h-4" />
-                <span>hola@magnate.com.ar</span>
+                <span>hola@tecnomind.com.ar</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-white/60">
                 <Phone className="w-4 h-4" />
@@ -100,7 +100,7 @@ const Footer = () => {
         <div className="mt-16 pt-8 border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-white/50">
-              © 2024 Magnate. Todos los derechos reservados.
+              © 2024 TecnoMind. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-6">
               <span className="text-xs text-white/40">

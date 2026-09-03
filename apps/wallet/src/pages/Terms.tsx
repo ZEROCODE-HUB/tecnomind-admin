@@ -24,7 +24,7 @@ const Terms = () => {
             </Button>
             
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-              Términos y Condiciones de Uso de Magnate
+              Términos y Condiciones de Uso de TecnoMind
             </h1>
             <p className="text-sm text-slate-500">
               Última actualización: Diciembre 2024
@@ -38,9 +38,9 @@ const Terms = () => {
                 1. Aceptación
               </h2>
               <p className="text-slate-700 leading-relaxed">
-                Al registrarse y utilizar la billetera virtual "Magnate", usted acepta 
+                Al registrarse y utilizar la billetera virtual "TecnoMind", usted acepta 
                 los presentes términos bajo la normativa vigente de la República Argentina. 
-                Magnate opera como Proveedor de Servicios de Pago (PSP) registrado ante el 
+                TecnoMind opera como Proveedor de Servicios de Pago (PSP) registrado ante el 
                 Banco Central de la República Argentina (BCRA).
               </p>
             </section>
@@ -50,7 +50,7 @@ const Terms = () => {
                 2. Funcionalidad del Servicio
               </h2>
               <p className="text-slate-700 leading-relaxed">
-                Magnate permite la gestión de fondos, transferencias vía CVU/CBU y pagos 
+                TecnoMind permite la gestión de fondos, transferencias vía CVU/CBU y pagos 
                 con QR interoperable (Transferencias 3.0). Los fondos en la cuenta de pago 
                 no constituyen depósitos en una entidad financiera ni cuentan con las 
                 garantías de tales depósitos.
@@ -74,7 +74,7 @@ const Terms = () => {
                 4. Responsabilidad
               </h2>
               <p className="text-slate-700 leading-relaxed">
-                Magnate no se responsabiliza por fallas en el sistema bancario nacional 
+                TecnoMind no se responsabiliza por fallas en el sistema bancario nacional 
                 (COELSA) o interrupciones de servicios de terceros.
               </p>
             </section>
