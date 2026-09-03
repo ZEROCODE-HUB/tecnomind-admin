@@ -71,7 +71,7 @@ Cada `vercel.json` construye desde la raíz del monorepo para respetar los works
 ## Estado
 
 - [x] **Fase 0** — Andamiaje del monorepo, ambas apps compilando y corriendo en paralelo
-- [ ] **Fase 1** — Esquema de Supabase versionado *(bloqueada: falta el backup de Magnate)*
+- [x] **Fase 1** — Esquema de Supabase versionado y aplicado (13 migraciones)
 - [ ] **Fase 2** — RLS y roles de backoffice
 - [ ] **Fase 3** — Webapp contra datos reales
 - [ ] **Fase 4** — Admin contra datos reales, sección por sección
