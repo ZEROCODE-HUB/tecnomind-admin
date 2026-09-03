@@ -76,10 +76,10 @@ const Profile = () => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowLogoutModal(false);
-    logout();
-    navigate("/login");
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   return (

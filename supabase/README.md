@@ -243,3 +243,56 @@ Los tres archivos de datos mock (`mockBalance`, `mockTransactions`,
 envía por ningún canal. Hoy ese paso **no verifica nada**. La tabla `email_otps`
 ya existe en el esquema; falta implementarlo cuando esté Resend. Marcado con un
 comentario en el código. **No puede salir a producción así.**
+
+---
+
+## Verificación en navegador (migraciones 00023–00025)
+
+Probado en Chrome contra los servidores locales, con datos reales. Apareció
+una cadena de bugs que ninguna prueba de API había detectado.
+
+### La app no montaba: dos copias de React
+
+Pantalla en blanco, sin errores en consola. El árbol fallaba con
+`Cannot read properties of null (reading 'useEffect')` en
+`QueryClientProvider`, capturado con un error boundary inyectado a mano.
+
+**Causa:** el monorepo tiene React 18 (wallet, webapp) y React 19 (admin).
+npm hoistea React 19 a la raíz junto a dependencias compartidas como
+`@tanstack/react-query`, y esa librería cargaba el React equivocado. Es el
+riesgo asumido al mantener dos stacks, y se manifestó solo en dev.
+
+**Corrección:** `resolve.dedupe` + alias explícitos a la copia local de React
+en el `vite.config.ts` de `wallet` y `webapp`.
+
+### El nombre de la contraparte: tres intentos hasta la causa real
+
+El listado mostraba `tecnomind.28987654` en lugar de `Martin Lopez`.
+
+1. **00023** — el `COALESCE` heredado ponía `payment_reference` (el
+   identificador que escribió el usuario) **antes** del nombre del titular.
+   Invertí la prioridad. Seguía mostrando el alias.
+2. **00024** — `process_transfer` crea **dos** transacciones para una
+   transferencia interna, y en la de egreso `to_account_id` queda en NULL: la
+   contraparte viaja en `metadata`. Lo leí de ahí. Seguía mostrando el alias.
+3. **00025** — la causa de fondo: la vista tiene `security_invoker = true`, así
+   que sus subconsultas corren con los permisos de quien consulta, y el RLS
+   —con razón— no deja que un cliente lea la cuenta ni el perfil de otro. El
+   subselect devolvía NULL.
+
+No se podía arreglar relajando el RLS: eso es justo lo que `00010` y `00018`
+cerraron. La salida fue exponer **solo el nombre** con
+`get_account_holder_name()`, una función `SECURITY DEFINER`, igual que ya hacía
+`search_account_for_transfer` antes de transferir. Verificado: el cliente ve
+"Martin Lopez" en su movimiento, y `GET /users?first_name=eq.Martin` le sigue
+devolviendo `[]`.
+
+### Otros bugs de UI corregidos
+
+- **`ConfirmPay`** mostraba el alias como destinatario en vez del titular.
+- **`SuccessPay`** mostraba el destinatario **vacío**: espera un objeto
+  `{name, cuit, type}` y `ConfirmPay` le pasaba un string.
+- **El botón "Cerrar Sesión" del sidebar solo navegaba a `/login`**: nunca
+  cerraba la sesión. Volver a `/dashboard` por URL seguía mostrando los datos.
+  Ahora llama a `logout()`, que además fuerza `signOut({scope:'local'})` si la
+  llamada al servidor falla, para que el token no quede vivo en el navegador.

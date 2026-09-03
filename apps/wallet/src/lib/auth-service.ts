@@ -117,5 +117,12 @@ export async function registrar(datos: RegistroDatos, pin: string): Promise<Resu
 }
 
 export async function cerrarSesion() {
-  await supabase.auth.signOut();
+  // scope 'local' garantiza que el token salga del navegador incluso si la
+  // llamada al servidor falla. Sin esto, un signOut fallido deja la sesión
+  // viva en localStorage y el guard sigue dejando pasar.
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.warn("Falló el cierre de sesión en el servidor; se limpia localmente", error);
+    await supabase.auth.signOut({ scope: "local" });
+  }
 }

@@ -15,7 +15,7 @@ interface AuthContextType {
   login: (email: string, pin: string) => Promise<boolean>;
   /** Igual que login, pero devuelve el motivo del fallo para mostrarlo. */
   loginConDetalle: (email: string, pin: string) => Promise<{ ok: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   refreshUser: () => Promise<void>;
 }
@@ -109,8 +109,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLoading,
       login: async (email, pin) => (await iniciarSesion(email, pin)).ok,
       loginConDetalle,
-      logout: () => {
-        void cerrarSesion();
+      logout: async () => {
+        await cerrarSesion();
+        // No se espera al listener: el estado se limpia ya, así el guard
+        // reacciona en el mismo tick.
+        setSession(null);
+        setUser(null);
       },
       // Optimista en memoria: la escritura real la hace cada pantalla y
       // refreshUser vuelve a traer el estado del servidor.

@@ -47,7 +47,14 @@ const ConfirmPay = () => {
       navigate("/success-pay", {
         state: {
           amount: transferData.amount,
-          recipient: transferData.recipient,
+          // SuccessPay espera un objeto, no el identificador suelto.
+          recipient: {
+            name: transferData.recipientName?.trim() || transferData.recipient,
+            cuit: transferData.recipient,
+            type: /^d{22}$/.test(transferData.recipient.trim())
+              ? transferData.recipient.trim().startsWith("000") ? "CVU" : "CBU"
+              : "Alias",
+          },
           concept: transferData.concept,
           transactionId: resultado?.reference_number ?? resultado?.transaction_id ?? "",
           date: new Date(),
@@ -103,7 +110,10 @@ const ConfirmPay = () => {
     );
   }
 
-  const { recipient, amount, concept } = transferData;
+  const { recipient, recipientName, amount, concept } = transferData;
+  // Si por algún motivo no se resolvió el titular, se cae al identificador
+  // en vez de mostrar un hueco vacío.
+  const titular = recipientName?.trim() || recipient;
 
   if (isProcessing) {
     return (
@@ -151,13 +161,13 @@ const ConfirmPay = () => {
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center">
               <span className="text-accent-foreground font-bold text-lg">
-                {getInitials(recipient)}
+                {getInitials(titular)}
               </span>
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">Destinatario</p>
               <h2 className="font-semibold text-lg text-foreground">
-                {recipient}
+                {titular}
               </h2>
             </div>
           </div>

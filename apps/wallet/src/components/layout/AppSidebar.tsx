@@ -4,6 +4,7 @@ import { LucideIcon } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoIcon from "@/components/LogoIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 interface SidebarItemProps {
@@ -46,6 +47,7 @@ const AppSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, toggleSidebar } = useSidebar();
+  const { logout } = useAuth();
 
   const handleSidebarClick = (e: React.MouseEvent<HTMLElement>) => {
     // Solo colapsar/expandir si el clic es directamente en el aside (área de fondo)
@@ -115,7 +117,12 @@ const AppSidebar = () => {
           onClick={() => navigate("/settings")}
         />
         <button 
-          onClick={() => navigate("/login")}
+          onClick={async () => {
+            // Antes solo navegaba a /login: la sesión quedaba viva y
+            // volver a /dashboard por URL seguía mostrando los datos.
+            await logout();
+            navigate("/login", { replace: true });
+          }}
           title={collapsed ? "Cerrar Sesión" : undefined}
           className={cn(
             "flex items-center gap-3 w-full px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 transition-colors min-h-[44px]",

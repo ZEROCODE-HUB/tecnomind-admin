@@ -88,9 +88,9 @@ const Menu = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   return (
