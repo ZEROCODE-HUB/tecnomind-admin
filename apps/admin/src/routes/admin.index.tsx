@@ -1,14 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ShieldCheck,
-  CreditCard,
+  Users,
   ArrowLeftRight,
   BarChart3,
   ArrowRight,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { PageHeader, Card, Stat, Badge } from "@/components/portal-shell";
-import { useBackoffice } from "@/stores/backoffice-store";
+import { EmptyState } from "@/components/empty-state";
+import { useResumen } from "@/lib/movimientos";
+import { useClientes, formatARS, mensajeError } from "@/lib/clientes";
+import { useAuth } from "@/contexts/auth";
+
+/**
+ * Un contador que el rol no puede consultar llega en null y se muestra
+ * como guion: cero seria afirmar que no hay nada (ver migracion 00031).
+ */
+const cifra = (v: number | null | undefined) => (v == null ? "—" : String(v));
+const importe = (v: number | null | undefined) => (v == null ? "—" : formatARS(v));
 
 export const Route = createFileRoute("/admin/")({ component: Page });
 
@@ -59,9 +70,7 @@ function ModuleCard({
             className="text-xs text-muted-foreground hover:text-moli-blue transition-colors"
           >
             {it.label}
-            {typeof it.count === "number" && (
-              <span className="font-mono tabular-nums"> · {it.count}</span>
-            )}
+            {it.count != null && ` (${it.count})`}
           </Link>
         ))}
       </div>
@@ -69,98 +78,141 @@ function ModuleCard({
   );
 }
 
-function Page() {
-  const clientes = useBackoffice((s) => s.clientes);
-  const pagos = useBackoffice((s) => s.pagos);
-  const operacionesOtc = useBackoffice((s) => s.operacionesOtc);
+/** Tarjeta de cola de trabajo: un número y a dónde ir a resolverlo. */
+function Cola({ to, label, value }: { to: string; label: string; value: number }) {
+  return (
+    <Link
+      to={to}
+      className="rounded-lg border border-border p-4 hover:bg-accent/40 transition-colors"
+    >
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="font-display text-2xl font-semibold mt-1 tabular-nums">{value}</div>
+      <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
+        Ver cola <ArrowRight size={11} />
+      </div>
+    </Link>
+  );
+}
 
-  const clientesPendientes = clientes.filter((c) => c.estadoVerificacion === "Pendiente").length;
-  const pagosPorDecidir = pagos.filter(
-    (p) => p.estado === "Pendiente" || p.estado === "En proceso",
+function Page() {
+  const { can } = useAuth();
+  const veClientes = can("verificacion", "read") || can("usuarios", "read");
+  const veMovimientos = can("movimientos", "read");
+  const veEstadisticas = can("estadisticas", "read");
+
+  const resumen = useResumen();
+  // Sin permiso el padrón vuelve vacío y todo contador derivado daría 0,
+  // que se leería como "no hay", no como "no podés ver". Ni se pide.
+  const clientesQuery = useClientes(veClientes);
+
+  // El resumen sale de una sola función en la base; el padrón sirve para
+  // los cortes que dependen del cruce de dos estados.
+  const clientes = (clientesQuery.data ?? []).filter((c) => !c.esOperador);
+  const r = resumen.data;
+
+  const porRevisar = clientes.filter(
+    (c) => c.estadoVerificacion === "Pendiente" || c.estadoVerificacion === "En revisión",
   ).length;
-  const otcPorTasar = operacionesOtc.filter(
-    (o) => o.tasaAplicada == null && o.estado !== "Rechazada",
-  ).length;
+  const listasPorCruzar = clientes.filter((c) => c.estadoCumplimiento === "Pendiente").length;
   const clientesActivos = clientes.filter((c) => c.estadoCuenta === "Activa").length;
+
+  if (resumen.isLoading) {
+    return (
+      <div className="py-20 flex justify-center text-muted-foreground">
+        <Loader2 size={24} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (resumen.isError) {
+    return (
+      <>
+        <PageHeader title="Panel general" description="Visión operativa de la plataforma." />
+        <Card>
+          <EmptyState title="No se pudo cargar el panel" description={mensajeError(resumen.error)} />
+        </Card>
+      </>
+    );
+  }
 
   return (
     <div className="bg-white -m-4 md:-m-6 lg:-mx-8 lg:-my-6 p-4 md:p-6 lg:p-8 min-h-[calc(100vh-3.5rem)]">
       <PageHeader
         title="Panel general"
-        description="Visión operativa de la plataforma: verificación de clientes, pagos, operaciones OTC y estadísticas."
+        description="Visión operativa de la plataforma: verificación de clientes, movimientos y estadísticas."
       />
 
-      {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Stat
           label="Clientes por verificar"
-          value={String(clientesPendientes)}
-          sub={`${clientes.filter((c) => c.estadoVerificacion === "En revisión").length} en revisión`}
+          value={cifra(r?.clientesPendientes)}
+          sub={r?.clientesEnRevision == null ? "Sin acceso al padrón" : `${r.clientesEnRevision} en revisión`}
         />
         <Stat
-          label="Pagos por decidir"
-          value={String(pagosPorDecidir)}
-          sub="Pendientes y en proceso"
+          label="Movimientos de hoy"
+          value={cifra(r?.movimientosHoy)}
+          sub={r?.volumenHoy == null ? "Sin acceso a movimientos" : `${formatARS(r.volumenHoy)} operados`}
         />
-        <Stat label="OTC por tasar" value={String(otcPorTasar)} sub="Sin tasa ni monto final" />
-        <Stat label="Clientes activos" value={String(clientesActivos)} sub="Cuentas habilitadas" />
+        <Stat label="Saldo en cuentas" value={importe(r?.saldoTotal)} sub="Cuentas activas" />
+        <Stat
+          label="Clientes activos"
+          value={veClientes ? String(clientesActivos) : "—"}
+          sub={r?.cuentasBloqueadas == null ? "Sin acceso al padrón" : `${r.cuentasBloqueadas} cuentas bloqueadas`}
+        />
       </div>
 
-      {/* Módulos */}
       <div className="grid md:grid-cols-2 gap-6">
+        {can("verificacion", "read") && (
         <ModuleCard
           icon={ShieldCheck}
           title="Verificación de clientes"
-          description="Consulta de perfiles, revisión de identidad biométrica (Truora) y validación contra listas restrictivas antes de habilitar la cuenta."
+          description="Consulta de perfiles, revisión de identidad y validación contra listas restrictivas antes de habilitar la cuenta."
           mainTo="/admin/verificacion/clientes"
           mainLabel="Ir a perfiles de clientes"
-          highlight={{
-            label: "Por revisar",
-            value: clientes.filter(
-              (c) => c.estadoVerificacion === "Pendiente" || c.estadoVerificacion === "En revisión",
-            ).length,
-          }}
+          highlight={{ label: "Por revisar", value: porRevisar }}
           items={[
             { to: "/admin/verificacion/clientes", label: "Perfiles" },
             { to: "/admin/verificacion/identidad", label: "Identidad" },
             { to: "/admin/verificacion/listas", label: "Listas restrictivas" },
           ]}
         />
-        <ModuleCard
-          icon={CreditCard}
-          title="Gestión de pagos"
-          description="Procesamiento manual de pagos internacionales, carga y validación de comprobantes, y decisión de aprobación o rechazo de cada operación."
-          mainTo="/admin/pagos/solicitudes"
-          mainLabel="Ir a solicitudes de pago"
-          highlight={{
-            label: "Por decidir",
-            value: pagosPorDecidir,
-          }}
-          items={[
-            { to: "/admin/pagos/solicitudes", label: "Solicitudes" },
-            { to: "/admin/pagos/comprobantes", label: "Comprobantes" },
-            { to: "/admin/pagos/aprobacion", label: "Aprobación" },
-          ]}
-        />
+        )}
+        {veMovimientos && (
         <ModuleCard
           icon={ArrowLeftRight}
-          title="Operaciones OTC"
-          description="Registro de operaciones de cambio USDT a pesos colombianos y control manual de tasas aplicadas y montos finales a entregar."
-          mainTo="/admin/otc/registro"
-          mainLabel="Ir a registro de operaciones"
-          highlight={{
-            label: "Por tasar",
-            value: otcPorTasar,
-          }}
+          title="Movimientos"
+          description="Historial completo de transacciones: depósitos, retiros, transferencias y comisiones, con el detalle de ambas contrapartes."
+          mainTo="/admin/general/movimientos"
+          mainLabel="Ir a todos los movimientos"
+          highlight={{ label: "Pendientes", value: r?.movimientosPendientes ?? 0 }}
           items={[
-            { to: "/admin/otc/registro", label: "Registro" },
-            { to: "/admin/otc/tasas", label: "Tasas y montos" },
+            { to: "/admin/general/movimientos", label: "Todos" },
+            { to: "/admin/general/movimientos/depositos", label: "Depósitos" },
+            { to: "/admin/general/movimientos/retiros", label: "Retiros" },
+            { to: "/admin/general/movimientos/comisiones", label: "Comisiones" },
           ]}
         />
+        )}
+        {can("usuarios", "read") && (
+        <ModuleCard
+          icon={Users}
+          title="Usuarios"
+          description="Padrón de clientes con su estado, su cuenta y su saldo. Suspensión y reactivación de cuentas."
+          mainTo="/admin/general/usuarios"
+          mainLabel="Ir al padrón de usuarios"
+          highlight={{ label: "Registrados", value: r?.clientesTotal ?? 0 }}
+          highlightTone="success"
+          items={[
+            { to: "/admin/general/usuarios", label: "Personas físicas" },
+            { to: "/admin/administracion/usuarios/roles", label: "Roles y permisos" },
+          ]}
+        />
+        )}
+        {veEstadisticas && (
         <ModuleCard
           icon={BarChart3}
           title="Estadísticas operativas"
-          description="Panel de depósitos y retiros, y los indicadores generales del negocio: volumen de pagos, operaciones OTC completadas y clientes activos."
+          description="Panel de depósitos y retiros e indicadores generales del negocio."
           mainTo="/admin/estadisticas/depositos-retiros"
           mainLabel="Ir a depósitos y retiros"
           items={[
@@ -168,68 +220,36 @@ function Page() {
             { to: "/admin/estadisticas/indicadores", label: "Indicadores generales" },
           ]}
         />
+        )}
       </div>
 
-      {/* Colas de trabajo */}
       <Card className="mt-6">
         <h3 className="font-display font-semibold mb-3">Colas de trabajo del día</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link
-            to="/admin/verificacion/identidad"
-            className="rounded-lg border border-border p-4 hover:bg-accent/40 transition-colors"
-          >
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Identidad por revisar
-            </div>
-            <div className="font-display text-2xl font-semibold mt-1 tabular-nums">
-              {clientes.filter((c) => c.estadoVerificacion === "En revisión").length}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
-              Ver cola <ArrowRight size={11} />
-            </div>
-          </Link>
-          <Link
-            to="/admin/pagos/aprobacion"
-            className="rounded-lg border border-border p-4 hover:bg-accent/40 transition-colors"
-          >
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Pagos por decidir
-            </div>
-            <div className="font-display text-2xl font-semibold mt-1 tabular-nums">
-              {pagosPorDecidir}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
-              Ver cola <ArrowRight size={11} />
-            </div>
-          </Link>
-          <Link
-            to="/admin/otc/tasas"
-            className="rounded-lg border border-border p-4 hover:bg-accent/40 transition-colors"
-          >
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              OTC por tasar
-            </div>
-            <div className="font-display text-2xl font-semibold mt-1 tabular-nums">
-              {otcPorTasar}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
-              Ver cola <ArrowRight size={11} />
-            </div>
-          </Link>
-          <Link
-            to="/admin/verificacion/listas"
-            className="rounded-lg border border-border p-4 hover:bg-accent/40 transition-colors"
-          >
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Listas por cruzar
-            </div>
-            <div className="font-display text-2xl font-semibold mt-1 tabular-nums">
-              {clientes.filter((c) => c.estadoCumplimiento === "Pendiente").length}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
-              Ver cola <ArrowRight size={11} />
-            </div>
-          </Link>
+          {can("verificacion", "read") && (
+            <>
+              <Cola
+                to="/admin/verificacion/identidad"
+                label="Identidad por revisar"
+                value={porRevisar}
+              />
+              <Cola to="/admin/verificacion/listas" label="Listas por cruzar" value={listasPorCruzar} />
+            </>
+          )}
+          {veMovimientos && (
+            <Cola
+              to="/admin/general/movimientos"
+              label="Movimientos pendientes"
+              value={r?.movimientosPendientes ?? 0}
+            />
+          )}
+          {can("usuarios", "read") && (
+            <Cola
+              to="/admin/general/usuarios"
+              label="Cuentas bloqueadas"
+              value={r?.cuentasBloqueadas ?? 0}
+            />
+          )}
         </div>
       </Card>
     </div>

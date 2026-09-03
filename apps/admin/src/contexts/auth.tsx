@@ -12,9 +12,14 @@ import {
 
 import { supabase } from "@/lib/supabase";
 
+/** Quien esta operando, para la cabecera. */
+export type Operador = { nombre: string; email: string; roles: string[] };
+
 type AuthState = {
   session: Session | null;
   permissions: PermissionMap;
+  /** null mientras carga o si la cuenta no tiene perfil. */
+  operador: Operador | null;
   /** true mientras no se sabe todavía si hay sesión: evita parpadeos de login. */
   loading: boolean;
   /** true si el operador puede leer al menos un recurso del backoffice. */
@@ -29,6 +34,7 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [permissions, setPermissions] = useState<PermissionMap>(EMPTY_PERMISSIONS);
+  const [operador, setOperador] = useState<Operador | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,16 +47,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!next) {
         if (active) {
           setPermissions(EMPTY_PERMISSIONS);
+          setOperador(null);
           setLoading(false);
         }
         return;
       }
       try {
-        const perms = await fetchPermissions(supabase);
-        if (active) setPermissions(perms);
+        const [perms, perfil] = await Promise.all([
+          fetchPermissions(supabase),
+          supabase.rpc("get_my_backoffice_profile"),
+        ]);
+        if (!active) return;
+        setPermissions(perms);
+        const fila = (perfil.data ?? [])[0];
+        setOperador(
+          fila
+            ? {
+                nombre: fila.full_name ?? fila.email,
+                email: fila.email,
+                roles: fila.role_names ?? [],
+              }
+            : null,
+        );
       } catch (err) {
         console.error("No se pudieron cargar los permisos", err);
-        if (active) setPermissions(EMPTY_PERMISSIONS);
+        if (active) {
+          setPermissions(EMPTY_PERMISSIONS);
+          setOperador(null);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -79,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       permissions,
+      operador,
       loading,
       hasAccess: hasAnyAccess(permissions),
       can: (resource, action = "read") => canDo(permissions, resource, action),
@@ -90,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
       },
     }),
-    [session, permissions, loading],
+    [session, permissions, operador, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

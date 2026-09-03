@@ -1,59 +1,76 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { ShieldAlert, Eye, XCircle, AlertTriangle, X, UserCheck } from "lucide-react";
+import { ShieldAlert, Eye, XCircle, AlertTriangle, X, UserCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type Column } from "@/components/data-table";
 import { ActionsDropdown } from "@/components/actions-dropdown";
 import { PageHeader, Badge, Card, Label } from "@/components/portal-shell";
+import { EmptyState } from "@/components/empty-state";
+import { useAuth } from "@/contexts/auth";
 import {
-  useBackoffice,
+  useClientes,
+  useChequeos,
+  useChequeosPorCliente,
+  useSetChequeo,
+  useSetCumplimiento,
   tonePorEstado,
+  formatFecha,
+  formatDocumento,
+  mensajeError,
   ESTADOS_CUMPLIMIENTO,
-  type CumplimientoListas,
+  RESULTADOS_LISTA,
+  type Chequeo,
   type Cliente,
-  type ListaRestrictiva,
-  type ResultadoListaCliente,
-} from "@/stores/backoffice-store";
+  type ResultadoLista,
+} from "@/lib/clientes";
 
 export const Route = createFileRoute("/admin/verificacion/listas")({
   component: Page,
-  
 });
 
-const RESULTADO_TONE: Record<ResultadoListaCliente["resultado"], "success" | "warn" | "danger"> = {
+const RESULTADO_TONE: Record<ResultadoLista, "neutral" | "success" | "warn" | "danger"> = {
+  Pendiente: "neutral",
   "Sin coincidencia": "success",
   "En revisión": "warn",
   Coincidencia: "danger",
 };
 
-function Field({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div>
-      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
-      <div className="font-medium mt-0.5">{value}</div>
-    </div>
-  );
-}
+/** El código de la lista PEP, para la columna destacada del listado. */
+const LISTA_PEP = "pep";
 
-function ListasModal({
-  cumplimiento,
-  cliente,
-  onClose,
-}: {
-  cumplimiento: CumplimientoListas;
-  cliente: Cliente;
-  onClose: () => void;
-}) {
-  const setCumplimiento = useBackoffice((s) => s.setCumplimiento);
-  const setResultadoLista = useBackoffice((s) => s.setResultadoLista);
-  const [obs, setObs] = useState(cumplimiento.observaciones);
+function ListasModal({ cliente, onClose }: { cliente: Cliente; onClose: () => void }) {
+  const { can } = useAuth();
+  const puedeEditar = can("verificacion", "update");
+  const chequeos = useChequeos(cliente.id);
+  const setChequeo = useSetChequeo();
+  const setCumplimiento = useSetCumplimiento();
+  const [obs, setObs] = useState(cliente.observaciones);
 
-  const tieneCoincidencia = cumplimiento.resultados.some((r) => r.resultado === "Coincidencia");
+  const resultados = chequeos.data ?? [];
+  const tieneCoincidencia = resultados.some((r) => r.resultado === "Coincidencia");
 
-  const guardarCruce = (lista: ListaRestrictiva, resultado: ResultadoListaCliente["resultado"]) => {
-    setResultadoLista(cumplimiento.clienteId, lista, resultado);
-    toast.success(`${lista}: marcada como "${resultado}".`);
-  };
+  const guardarCruce = (listaCode: string, listaNombre: string, resultado: ResultadoLista) =>
+    setChequeo.mutate(
+      { userId: cliente.id, listaCode, resultado },
+      {
+        onSuccess: () => toast.success(`${listaNombre}: marcada como "${resultado}".`),
+        onError: (e) => toast.error(mensajeError(e)),
+      },
+    );
+
+  const resolver = (estado: "En revisión" | "Pasa" | "No pasa") =>
+    setCumplimiento.mutate(
+      { userId: cliente.id, estado, notas: obs.trim() },
+      {
+        onSuccess: () => {
+          if (estado === "Pasa") toast.success(`El cliente ${cliente.nombre} pasa el filtro de cumplimiento`);
+          else if (estado === "No pasa") toast.error(`El cliente ${cliente.nombre} no pasa el filtro`);
+          else toast.info("Filtro de cumplimiento marcado en revisión");
+          onClose();
+        },
+        onError: (e) => toast.error(mensajeError(e)),
+      },
+    );
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
@@ -65,7 +82,7 @@ function ListasModal({
               Validación contra listas restrictivas
             </h3>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {cliente.nombre} · {cliente.id}
+              {cliente.nombre} · {formatDocumento(cliente.documento)}
             </p>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-md">
@@ -79,10 +96,11 @@ function ListasModal({
               <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Resultado del filtro de cumplimiento
               </h4>
-              <Badge tone={tonePorEstado(cumplimiento.estadoCumplimiento)}>
-                {cumplimiento.estadoCumplimiento}
+              <Badge tone={tonePorEstado(cliente.estadoCumplimiento)}>
+                {cliente.estadoCumplimiento}
               </Badge>
             </div>
+
             {tieneCoincidencia && (
               <div className="flex items-start gap-2 rounded-lg bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-300 p-3 text-sm mb-4">
                 <ShieldAlert size={16} className="shrink-0 mt-0.5" />
@@ -92,33 +110,43 @@ function ListasModal({
                 </span>
               </div>
             )}
-            <div className="space-y-3">
-              {cumplimiento.resultados.map((r) => (
-                <div
-                  key={r.lista}
-                  className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-b last:border-0 pb-3 last:pb-0"
-                >
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold">{r.lista}</div>
-                    {r.detalle && (
-                      <div className="text-xs text-muted-foreground mt-0.5">{r.detalle}</div>
-                    )}
-                  </div>
-                  <Badge tone={RESULTADO_TONE[r.resultado]}>{r.resultado}</Badge>
-                  <select
-                    value={r.resultado}
-                    onChange={(e) =>
-                      guardarCruce(r.lista, e.target.value as ResultadoListaCliente["resultado"])
-                    }
-                    className="h-9 px-2 rounded-md border border-input bg-background text-xs outline-none focus:ring-2 focus:ring-ring/40"
+
+            {chequeos.isLoading ? (
+              <div className="py-6 flex justify-center text-muted-foreground">
+                <Loader2 size={18} className="animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {resultados.map((r) => (
+                  <div
+                    key={r.listaCode}
+                    className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-b last:border-0 pb-3 last:pb-0"
                   >
-                    <option value="Sin coincidencia">Sin coincidencia</option>
-                    <option value="En revisión">En revisión</option>
-                    <option value="Coincidencia">Coincidencia</option>
-                  </select>
-                </div>
-              ))}
-            </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">{r.listaNombre}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {r.detalle || (r.fecha ? `Cruzada el ${formatFecha(r.fecha)}` : "Sin cruzar")}
+                      </div>
+                    </div>
+                    <Badge tone={RESULTADO_TONE[r.resultado]}>{r.resultado}</Badge>
+                    <select
+                      value={r.resultado}
+                      disabled={!puedeEditar || setChequeo.isPending}
+                      onChange={(e) =>
+                        guardarCruce(r.listaCode, r.listaNombre, e.target.value as ResultadoLista)
+                      }
+                      className="h-9 px-2 rounded-md border border-input bg-background text-xs outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-60"
+                    >
+                      {RESULTADOS_LISTA.map((op) => (
+                        <option key={op} value={op}>
+                          {op}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card className="p-5">
@@ -128,42 +156,44 @@ function ListasModal({
               value={obs}
               onChange={(e) => setObs(e.target.value)}
               rows={3}
-              placeholder="Registra el criterio aplicado en el cruce de listas..."
-              className="w-full rounded-lg border border-input bg-background text-sm p-3 outline-none focus:ring-2 focus:ring-ring/20 resize-y"
+              disabled={!puedeEditar}
+              placeholder="Registrá el criterio aplicado en el cruce de listas..."
+              className="w-full rounded-lg border border-input bg-background text-sm p-3 outline-none focus:ring-2 focus:ring-ring/20 resize-y disabled:opacity-60"
             />
+            {!puedeEditar && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Tu rol puede consultar el cruce pero no resolverlo.
+              </p>
+            )}
             <div className="flex flex-wrap justify-end gap-2 mt-4">
               <button
                 type="button"
-                onClick={() => {
-                  setCumplimiento(cumplimiento.clienteId, "En revisión", obs.trim());
-                  toast.info("Filtro de cumplimiento marcado en revisión");
-                  onClose();
-                }}
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm font-semibold hover:bg-amber-100 transition-colors"
+                disabled={!puedeEditar || setCumplimiento.isPending}
+                onClick={() => resolver("En revisión")}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm font-semibold hover:bg-amber-100 transition-colors disabled:opacity-50"
               >
                 <AlertTriangle size={15} /> En revisión
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setCumplimiento(cumplimiento.clienteId, "No pasa", obs.trim());
-                  toast.error(`El cliente ${cliente.nombre} no pasa el filtro de cumplimiento`);
-                  onClose();
-                }}
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
+                disabled={!puedeEditar || setCumplimiento.isPending}
+                onClick={() => resolver("No pasa")}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 <XCircle size={15} /> No pasa
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setCumplimiento(cumplimiento.clienteId, "Pasa", obs.trim());
-                  toast.success(`El cliente ${cliente.nombre} pasa el filtro de cumplimiento`);
-                  onClose();
-                }}
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-moli-red-dark transition-colors"
+                disabled={!puedeEditar || setCumplimiento.isPending}
+                onClick={() => resolver("Pasa")}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-moli-red-dark transition-colors disabled:opacity-50"
               >
-                <UserCheck size={15} /> Pasa
+                {setCumplimiento.isPending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <UserCheck size={15} />
+                )}
+                Pasa
               </button>
             </div>
           </Card>
@@ -174,35 +204,33 @@ function ListasModal({
 }
 
 function Page() {
-  const clientes = useBackoffice((s) => s.clientes);
-  const cumplimiento = useBackoffice((s) => s.cumplimiento);
-  const [active, setActive] = useState<CumplimientoListas | null>(null);
+  const clientesQuery = useClientes();
+  const chequeosQuery = useChequeosPorCliente();
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const registroDe = (c: CumplimientoListas) =>
-    clientes.find((x) => x.id === c.clienteId) as Cliente;
+  const clientes = (clientesQuery.data ?? []).filter((c) => !c.esOperador);
+  const active = clientes.find((c) => c.id === activeId) ?? null;
+  const porCliente: Map<string, Chequeo[]> = chequeosQuery.data ?? new Map();
 
-  const pendientes = cumplimiento.filter((c) => c.estadoCumplimiento === "Pendiente").length;
-  const pasan = cumplimiento.filter((c) => c.estadoCumplimiento === "Pasa").length;
-  const noPasan = cumplimiento.filter((c) => c.estadoCumplimiento === "No pasa").length;
+  const cuenta = (estado: string) => clientes.filter((c) => c.estadoCumplimiento === estado).length;
 
-  const columns: Column<CumplimientoListas>[] = [
+  const columns: Column<Cliente>[] = [
     {
-      key: "cliente",
+      key: "nombre",
       label: "Cliente",
       sortable: true,
       filterable: true,
-      render: (c) => {
-        const cl = registroDe(c);
-        return (
-          <div>
-            <div className="font-semibold">{cl.nombre}</div>
-            <div className="text-xs text-muted-foreground font-mono">{cl.documento}</div>
+      render: (c) => (
+        <div>
+          <div className="font-semibold">{c.nombre}</div>
+          <div className="text-xs text-muted-foreground font-mono">
+            {formatDocumento(c.documento)}
           </div>
-        );
-      },
+        </div>
+      ),
     },
     {
-      key: "estado",
+      key: "estadoCumplimiento",
       label: "Resultado del filtro",
       sortable: true,
       filterable: "enum",
@@ -216,7 +244,9 @@ function Page() {
       label: "Cruces positivos",
       sortable: true,
       render: (c) => {
-        const count = c.resultados.filter((r) => r.resultado === "Coincidencia").length;
+        const count = (porCliente.get(c.id) ?? []).filter(
+          (r) => r.resultado === "Coincidencia",
+        ).length;
         return count === 0 ? (
           <span className="text-xs text-muted-foreground">Ninguno</span>
         ) : (
@@ -231,26 +261,29 @@ function Page() {
       label: "PEP / Funcionario",
       sortable: true,
       filterable: "enum",
-      filterOptions: ["Sin coincidencia", "Coincidencia", "En revisión"],
+      filterOptions: RESULTADOS_LISTA,
       render: (c) => {
-        const pep = c.resultados.find((r) => r.lista === "PEP / Funcionario público");
-        return pep ? (
-          <Badge tone={RESULTADO_TONE[pep.resultado] as "success" | "warn" | "danger"}>
-            {pep.resultado}
-          </Badge>
-        ) : (
-          "—"
-        );
+        const pep = (porCliente.get(c.id) ?? []).find((r) => r.listaCode === LISTA_PEP);
+        const resultado = pep?.resultado ?? "Pendiente";
+        return <Badge tone={RESULTADO_TONE[resultado]}>{resultado}</Badge>;
       },
     },
     {
-      key: "fecha",
+      key: "ultimoCruce",
       label: "Último cruce",
       sortable: true,
       filterable: "date",
-      render: (c) => (
-        <span className="font-mono text-xs">{c.resultados[c.resultados.length - 1]?.fecha}</span>
-      ),
+      render: (c) => {
+        const fechas = (porCliente.get(c.id) ?? [])
+          .map((r) => r.fecha)
+          .filter(Boolean)
+          .sort();
+        return (
+          <span className="font-mono text-xs">
+            {fechas.length ? formatFecha(fechas[fechas.length - 1]) : "—"}
+          </span>
+        );
+      },
     },
   ];
 
@@ -266,7 +299,7 @@ function Page() {
             Pendientes de cruce
           </div>
           <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums">
-            {pendientes}
+            {cuenta("Pendiente")}
           </div>
         </Card>
         <Card>
@@ -274,34 +307,45 @@ function Page() {
             Pasan el filtro
           </div>
           <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums text-emerald-700">
-            {pasan}
+            {cuenta("Pasa")}
           </div>
         </Card>
         <Card>
           <div className="text-xs uppercase tracking-wide text-muted-foreground">No pasan</div>
           <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums text-red-700">
-            {noPasan}
+            {cuenta("No pasa")}
           </div>
         </Card>
       </div>
-      <DataTable
-        columns={columns}
-        data={cumplimiento}
-        keyExtractor={(c) => c.clienteId}
-        pageSize={10}
-        actions={(c) => (
-          <ActionsDropdown
-            actions={[{ label: "Ver cruces y decidir", icon: Eye, onClick: () => setActive(c) }]}
+
+      {clientesQuery.isLoading ? (
+        <Card>
+          <div className="py-12 flex justify-center text-muted-foreground">
+            <Loader2 size={22} className="animate-spin" />
+          </div>
+        </Card>
+      ) : clientes.length === 0 ? (
+        <Card>
+          <EmptyState
+            title="Sin clientes para cruzar"
+            description="No hay clientes registrados todavía."
           />
-        )}
-      />
-      {active && (
-        <ListasModal
-          cumplimiento={active}
-          cliente={registroDe(active)}
-          onClose={() => setActive(null)}
+        </Card>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={clientes}
+          keyExtractor={(c) => c.id}
+          pageSize={10}
+          actions={(c) => (
+            <ActionsDropdown
+              actions={[{ label: "Ver cruces y decidir", icon: Eye, onClick: () => setActiveId(c.id) }]}
+            />
+          )}
         />
       )}
+
+      {active && <ListasModal cliente={active} onClose={() => setActiveId(null)} />}
     </>
   );
 }

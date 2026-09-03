@@ -296,3 +296,93 @@ devolviendo `[]`.
   cerraba la sesión. Volver a `/dashboard` por URL seguía mostrando los datos.
   Ahora llama a `logout()`, que además fuerza `signOut({scope:'local'})` si la
   llamada al servidor falla, para que el token no quede vivo en el navegador.
+
+## Fase 4 — El backoffice contra datos reales (migraciones 00026–00033)
+
+El admin leía de un store en memoria (`stores/backoffice-store.ts`, 1343
+líneas). Eliminado: las secciones que tienen datos detrás ahora consultan
+Supabase, y las que no los tienen lo dicen en pantalla en vez de mostrar
+números inventados.
+
+| Archivo | Contenido |
+|---|---|
+| `00026_backoffice_clientes` | lectura por permiso granular, tablas de cumplimiento, mutadores auditados, vista `backoffice_clients` |
+| `00027_backoffice_movimientos` | vista `backoffice_transactions` + `backoffice_dashboard()` |
+| `00028_backoffice_estadisticas` | `backoffice_daily_flow()` y `backoffice_indicators()` |
+| `00029_agregados_sin_doble_conteo` | **corrección**: cada transferencia interna se contaba dos veces |
+| `00030_marca_de_operador` | `es_operador_backoffice()`; el filtro miraba el campo equivocado |
+| `00031_tablero_por_permiso` | **corrección**: el tablero devolvía contadores que el rol no podía consultar |
+| `00032_perfil_del_operador` | `get_my_backoffice_profile()` para la cabecera |
+| `00033_roles_en_castellano` | nombres de rol visibles, sin tocar los `code` |
+
+### Tres problemas de fondo que aparecieron al conectar
+
+**1. Un rol que no es admin no podía leer nada.** Las políticas heredadas
+(`00008`) abren `users`, `accounts` y `transactions` solo con `is_admin()`.
+El rol Cumplimiento — que existe precisamente para revisar clientes — no
+veía ni un nombre. Se agregaron políticas paralelas basadas en
+`has_backoffice_permission()`; las heredadas quedan intactas y se combinan
+con OR.
+
+**2. Un operador tampoco podía escribir, y no había que dejarlo.** En
+`00018` se revocó `UPDATE` sobre `users` y `accounts` para todo
+`authenticated`, y un operador también lo es. Relajar ese revoke reabriría
+el agujero de Magnate. Las escrituras del backoffice van por funciones
+`SECURITY DEFINER` que verifican el permiso **adentro** (SECURITY DEFINER
+desactiva el RLS: si no se chequea ahí, no lo chequea nadie) y dejan traza
+en `backoffice_audit_log`. El GRANT por columna sigue en pie.
+
+**3. El tablero filtraba agregados.** Verificado con el token real del rol
+Contabilidad: no podía leer ni una fila del padrón, pero
+`backoffice_dashboard()` le respondía `clientes_total: 3`. La función
+chequeaba un permiso al entrar y después contaba todo. Ahora cada bloque
+se evalúa contra su propio permiso y devuelve **NULL** —no cero— en los que
+no corresponden; la UI muestra "—", porque un cero se lee como "no hay".
+
+### Comprobado con dos roles distintos
+
+Con el token de Contabilidad (`movimientos.read` y nada más):
+
+| Operación | Resultado |
+|---|---|
+| `GET backoffice_clients` | solo su propia fila |
+| `GET backoffice_transactions` | los 4 movimientos |
+| `rpc backoffice_set_verification` | 403 `42501` |
+| `rpc backoffice_set_account_status` | 403 `42501` |
+| `rpc backoffice_dashboard` | contadores de cliente en NULL |
+
+En el navegador, ese mismo rol ve un menú con una sola sección y las
+tarjetas del tablero en "—".
+
+### Bugs encontrados verificando en el navegador
+
+- **Doble conteo de transferencias.** Una transferencia de $12.500 aparecía
+  como "2 movimientos, $25.000". `process_transfer` crea dos transacciones
+  (una por cuenta), correcto para la partida contable pero no para un
+  agregado de plataforma. Se excluye la pata espejo con `es_pata_espejo()`.
+  De paso: una transferencia interna no es ingreso ni egreso *para la
+  plataforma*, así que el gráfico la muestra en su propia serie.
+- **El filtro de operadores miraba `users.role`.** En TecnoMind el rol vive
+  en `backoffice_user_roles`; los dos operadores tenían `role = 'user'` y
+  aparecían listados como clientes a verificar.
+- **Los gráficos salían vacíos.** Recharts escalaba las barras contra un
+  dominio distinto al que rotulaba el eje: una barra de $250.000 medía 6px
+  en un eje que llegaba a 260k. Se fija `domain` explícito y se desactiva la
+  animación.
+- **"Salir" no cerraba la sesión.** El botón de la cabecera solo limpiaba el
+  estado de demo y navegaba; el token seguía vivo y volver por URL entraba.
+  Mismo bug que ya se había corregido en la app.
+- **La cabecera decía "Admin" para todos**, hardcodeado.
+
+### Secciones sin datos todavía
+
+Se muestran explícitas con el motivo, en vez de dejar los datos de
+demostración: **Pagos** (el circuito de pagos internacionales no está
+modelado), **OTC** (pertenece al producto con cripto, que tiene su propia
+base), **Pagos/Cobros QR** y **Pagos con tarjeta** (no hay tipo de operación
+propio ni adquirente), **Impuestos** (no hay cálculo de retenciones).
+
+El detalle extendido de usuario (`components/user-modal.tsx`, 2573 líneas)
+sigue con datos de demostración: depende de tablas de comisiones, impuestos,
+alertas y módulos que no existen. El listado y la ficha resumida sí son
+reales.

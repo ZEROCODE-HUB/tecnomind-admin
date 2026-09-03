@@ -2,10 +2,13 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Menu, LogOut, MoreHorizontal, ChevronDown, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { TecnoMindWordmark } from "./tecnomind-wordmark";
+import type { Resource } from "@tecnomind/core";
 import { useDemoMode } from "@/contexts/demo-mode";
+import { useAuth } from "@/contexts/auth";
 
-export type NavLeaf = { to: string; label: string; icon: LucideIcon };
-export type NavGroup = { label: string; icon: LucideIcon; items: NavLeaf[] };
+/** `recurso` es el codigo de backoffice_resources que gobierna el acceso. */
+export type NavLeaf = { to: string; label: string; icon: LucideIcon; recurso?: Resource };
+export type NavGroup = { label: string; icon: LucideIcon; items: NavLeaf[]; recurso?: Resource };
 export type NavItem = NavLeaf | NavGroup;
 
 const isGroup = (item: NavItem): item is NavGroup => (item as NavGroup).items !== undefined;
@@ -29,15 +32,28 @@ export function PortalShell({
   const path = useRouterState({ select: (r) => r.location.pathname });
   const [open, setOpen] = useState(false);
   const { setRole } = useDemoMode();
+  const { operador, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Iniciales del operador para el avatar; "?" mientras carga el perfil.
+  const iniciales =
+    operador?.nombre
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "?";
 
   // La barra inferior móvil prioriza los módulos (grupos) sobre las rutas sueltas.
   const mainNav: NavGroup[] = nav.filter(isGroup).slice(0, 4);
   const more = nav.filter(isGroup).slice(4);
 
-  const onLogout = () => {
+  // Cerrar sesion tiene que salir de Supabase, no solo cambiar el estado
+  // local: sin el signOut el token seguia vivo y volver por URL entraba.
+  const onLogout = async () => {
+    await signOut();
     setRole(null);
-    navigate({ to: "/" });
+    navigate({ to: "/login" });
   };
 
   return (
@@ -61,11 +77,18 @@ export function PortalShell({
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex flex-col items-end leading-tight">
-            <span className="text-xs text-black-400">Sesión</span>
-            <span className="text-sm font-semibold text-black-700">Admin</span>
+            <span className="text-xs text-black-400">
+              {operador?.roles.join(" · ") || "Sesión"}
+            </span>
+            <span className="text-sm font-semibold text-black-700">
+              {operador?.nombre ?? "…"}
+            </span>
           </div>
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-red-50 text-red-500">
-            AD
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-red-50 text-red-500"
+            title={operador?.email}
+          >
+            {iniciales}
           </div>
           <button
             onClick={onLogout}

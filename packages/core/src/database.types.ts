@@ -62,6 +62,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "account_alias_history_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "account_alias_history_changed_by_device_id_fkey"
             columns: ["changed_by_device_id"]
             isOneToOne: false
@@ -116,6 +123,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_balance_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -180,6 +194,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_limits_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -280,6 +301,27 @@ export type Database = {
             foreignKeyName: "accounts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -326,6 +368,27 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "api_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "api_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
           {
             foreignKeyName: "api_access_user_id_fkey"
             columns: ["user_id"]
@@ -383,6 +446,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_devices"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_credential_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_credential_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "api_credential_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
           },
           {
             foreignKeyName: "api_credential_history_user_id_fkey"
@@ -508,6 +592,27 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "backoffice_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backoffice_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "backoffice_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
           {
             foreignKeyName: "backoffice_audit_log_actor_id_fkey"
             columns: ["actor_id"]
@@ -641,6 +746,27 @@ export type Database = {
             foreignKeyName: "backoffice_user_roles_assigned_by_fkey"
             columns: ["assigned_by"]
             isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backoffice_user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "backoffice_user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "backoffice_user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -650,6 +776,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "backoffice_roles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backoffice_user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backoffice_user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "backoffice_user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
           },
           {
             foreignKeyName: "backoffice_user_roles_user_id_fkey"
@@ -714,6 +861,212 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_corrections_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
+      compliance_list_checks: {
+        Row: {
+          checked_at: string
+          checked_by: string | null
+          detail: string
+          id: string
+          list_code: string
+          result: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          checked_by?: string | null
+          detail?: string
+          id?: string
+          list_code: string
+          result?: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          checked_by?: string | null
+          detail?: string
+          id?: string
+          list_code?: string
+          result?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_list_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_list_code_fkey"
+            columns: ["list_code"]
+            isOneToOne: false
+            referencedRelation: "compliance_lists"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_list_checks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_lists: {
+        Row: {
+          code: string
+          description: string | null
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      compliance_reviews: {
+        Row: {
+          notes: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          notes?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          notes?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "compliance_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -793,10 +1146,61 @@ export type Database = {
             foreignKeyName: "kyc_verifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kyc_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "kyc_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "kyc_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
+      }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email: string
+          failure_reason: string | null
+          id: string
+          ip_address: unknown
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          failure_reason?: string | null
+          id?: string
+          ip_address?: unknown
+          success: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          failure_reason?: string | null
+          id?: string
+          ip_address?: unknown
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
       }
       notification_log: {
         Row: {
@@ -888,6 +1292,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notification_log_related_account_id_fkey"
+            columns: ["related_account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "notification_log_related_transaction_id_fkey"
             columns: ["related_transaction_id"]
             isOneToOne: false
@@ -905,8 +1316,36 @@ export type Database = {
             foreignKeyName: "notification_log_related_transaction_id_fkey"
             columns: ["related_transaction_id"]
             isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_log_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "notification_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
           },
           {
             foreignKeyName: "notification_log_user_id_fkey"
@@ -961,6 +1400,27 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
           {
             foreignKeyName: "notification_preferences_user_id_fkey"
             columns: ["user_id"]
@@ -1076,6 +1536,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_codes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -1241,6 +1708,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "transactions_initiated_from_device_id_fkey"
             columns: ["initiated_from_device_id"]
             isOneToOne: false
@@ -1267,6 +1741,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "transactions_transaction_type_id_fkey"
@@ -1303,6 +1784,27 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_auth_credentials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_auth_credentials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "user_auth_credentials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
           {
             foreignKeyName: "user_auth_credentials_user_id_fkey"
             columns: ["user_id"]
@@ -1398,6 +1900,27 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
           {
             foreignKeyName: "user_devices_user_id_fkey"
             columns: ["user_id"]
@@ -1529,6 +2052,27 @@ export type Database = {
             foreignKeyName: "accounts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1555,6 +2099,27 @@ export type Database = {
           user_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
           {
             foreignKeyName: "accounts_user_id_fkey"
             columns: ["user_id"]
@@ -1626,6 +2191,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "transactions_initiated_from_device_id_fkey"
             columns: ["initiated_from_device_id"]
             isOneToOne: false
@@ -1654,6 +2226,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "transactions_transaction_type_id_fkey"
             columns: ["transaction_type_id"]
             isOneToOne: false
@@ -1661,6 +2240,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      backoffice_clients: {
+        Row: {
+          account_id: string | null
+          account_status: string | null
+          account_status_reason: string | null
+          alias: string | null
+          balance: number | null
+          cbu: string | null
+          compliance_notes: string | null
+          compliance_reviewed_at: string | null
+          compliance_status: string | null
+          country_code: string | null
+          created_at: string | null
+          cvu: string | null
+          document_number: string | null
+          document_type: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string | null
+          is_operator: boolean | null
+          kyc_provider: string | null
+          kyc_score: number | null
+          kyc_status: string | null
+          kyc_verified_at: string | null
+          last_name: string | null
+          phone: string | null
+          role: string | null
+          tax_id: string | null
+          verification_status: string | null
+        }
+        Relationships: []
+      }
+      backoffice_transactions: {
+        Row: {
+          amount: number | null
+          commission_amount: number | null
+          completed_at: string | null
+          concept: string | null
+          created_at: string | null
+          currency: string | null
+          failed_at: string | null
+          failure_reason: string | null
+          from_account_id: string | null
+          from_alias: string | null
+          from_cvu: string | null
+          from_user_document: string | null
+          from_user_email: string | null
+          from_user_id: string | null
+          from_user_name: string | null
+          from_user_tax_id: string | null
+          id: string | null
+          metadata: Json | null
+          net_amount: number | null
+          payment_method: string | null
+          payment_reference: string | null
+          reference_number: string | null
+          status: string | null
+          to_account_id: string | null
+          to_alias: string | null
+          to_cvu: string | null
+          to_user_document: string | null
+          to_user_email: string | null
+          to_user_id: string | null
+          to_user_name: string | null
+          to_user_tax_id: string | null
+          type_category: string | null
+          type_code: string | null
+          type_name: string | null
+        }
+        Relationships: []
       }
       notification_stats_by_user: {
         Row: {
@@ -1679,6 +2330,27 @@ export type Database = {
             foreignKeyName: "notification_log_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "backoffice_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["from_user_id"]
+          },
+          {
+            foreignKeyName: "notification_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "backoffice_transactions"
+            referencedColumns: ["to_user_id"]
+          },
+          {
+            foreignKeyName: "notification_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1687,9 +2359,81 @@ export type Database = {
     }
     Functions: {
       archive_old_api_logs: { Args: never; Returns: undefined }
+      backoffice_audit: {
+        Args: {
+          p_action: string
+          p_after?: Json
+          p_before?: Json
+          p_resource_code: string
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: undefined
+      }
+      backoffice_daily_flow: {
+        Args: { p_days?: number }
+        Returns: {
+          cantidad: number
+          dia: string
+          egresos: number
+          ingresos: number
+          internas: number
+        }[]
+      }
+      backoffice_dashboard: {
+        Args: never
+        Returns: {
+          clientes_en_revision: number
+          clientes_pendientes: number
+          clientes_total: number
+          cuentas_bloqueadas: number
+          cumplimiento_pendiente: number
+          movimientos_hoy: number
+          movimientos_pendientes: number
+          saldo_total: number
+          volumen_hoy: number
+        }[]
+      }
+      backoffice_indicators: {
+        Args: { p_days?: number }
+        Returns: {
+          altas: number
+          clientes_operando: number
+          comisiones: number
+          operaciones: number
+          operaciones_fallidas: number
+          ticket_promedio: number
+          volumen: number
+        }[]
+      }
+      backoffice_set_account_status: {
+        Args: { p_reason?: string; p_status: string; p_user_id: string }
+        Returns: undefined
+      }
+      backoffice_set_compliance: {
+        Args: { p_notes?: string; p_status: string; p_user_id: string }
+        Returns: undefined
+      }
+      backoffice_set_list_check: {
+        Args: {
+          p_detail?: string
+          p_list_code: string
+          p_result: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      backoffice_set_verification: {
+        Args: { p_notes?: string; p_status: string; p_user_id: string }
+        Returns: undefined
+      }
       calculate_account_balance: {
         Args: { p_account_id: string }
         Returns: number
+      }
+      can_register: {
+        Args: { p_document_number: string; p_email: string; p_tax_id: string }
+        Returns: boolean
       }
       check_device_registered: {
         Args: { p_device_id: string; p_user_id: string }
@@ -1697,6 +2441,14 @@ export type Database = {
           device_record_id: string
           is_active: boolean
           is_registered: boolean
+        }[]
+      }
+      check_login_blocked: {
+        Args: { p_email: string }
+        Returns: {
+          attempts_left: number
+          blocked: boolean
+          retry_after_seconds: number
         }[]
       }
       check_user_exists: {
@@ -1736,10 +2488,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      es_operador_backoffice: { Args: { p_user_id: string }; Returns: boolean }
+      es_pata_espejo: {
+        Args: { p_metadata: Json; p_type_id: string }
+        Returns: boolean
+      }
       generate_static_qr: { Args: { p_account_id: string }; Returns: string }
       generate_unique_alias: { Args: never; Returns: string }
       generate_unique_cbu: { Args: never; Returns: string }
       generate_unique_cvu: { Args: never; Returns: string }
+      get_account_holder_name: {
+        Args: { p_account_id: string }
+        Returns: string
+      }
       get_account_info: {
         Args: { p_user_id?: string }
         Returns: {
@@ -1800,6 +2561,16 @@ export type Database = {
           resource_code: string
         }[]
       }
+      get_my_backoffice_profile: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          role_codes: string[]
+          role_names: string[]
+          user_id: string
+        }[]
+      }
       get_user_devices_list: {
         Args: { p_current_device_id: string; p_user_id: string }
         Returns: {
@@ -1853,6 +2624,7 @@ export type Database = {
         }
         Returns: Json
       }
+      puede_ver_clientes: { Args: never; Returns: boolean }
       read_queue_messages: {
         Args: { p_qty: number; p_queue_name: string; p_vt: number }
         Returns: unknown[]
@@ -1876,6 +2648,10 @@ export type Database = {
           old_balance: number
           status: string
         }[]
+      }
+      record_login_attempt: {
+        Args: { p_email: string; p_failure_reason?: string; p_success: boolean }
+        Returns: undefined
       }
       reset_daily_limits: { Args: never; Returns: undefined }
       reset_monthly_limits: { Args: never; Returns: undefined }

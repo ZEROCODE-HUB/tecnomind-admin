@@ -25,7 +25,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }
 
   if (!session || !hasAccess) {
-    return <Navigate to="/login" search={{ redirect: pathname }} replace />;
+    // Guardar "/login" como destino de vuelta deja al usuario dando
+    // vueltas sobre el propio login; en ese caso no se manda redirect.
+    const volverA = pathname.startsWith("/login") ? undefined : pathname;
+    return <Navigate to="/login" search={volverA ? { redirect: volverA } : {}} replace />;
   }
 
   return <>{children}</>;

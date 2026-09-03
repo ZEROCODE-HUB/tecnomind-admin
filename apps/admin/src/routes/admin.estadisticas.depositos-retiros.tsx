@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -10,148 +10,59 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { ArrowDownToLine, ArrowUpFromLine, Minus } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Minus, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
-import { PageHeader, Badge, Card } from "@/components/portal-shell";
-import { useBackoffice, tonePorEstado } from "@/stores/backoffice-store";
+import { PageHeader, Card } from "@/components/portal-shell";
+import { EmptyState } from "@/components/empty-state";
+import { estadoBadge } from "@/components/movimiento-detail";
+import { formatARS, formatFechaHora, mensajeError } from "@/lib/clientes";
+import { useSerieDiaria, useMovimientos, type Movimiento } from "@/lib/movimientos";
 
 export const Route = createFileRoute("/admin/estadisticas/depositos-retiros")({
   component: Page,
-  
 });
 
 type Periodo = 7 | 30 | 90;
-
 const PERIODOS: Periodo[] = [7, 30, 90];
 
-type Movimiento = {
-  fecha: string;
-  cliente: string;
-  tipo: "Depósito" | "Retiro";
-  monto: number;
-  estado: "Aprobado" | "En proceso" | "Rechazado" | "Pendiente";
-};
-
-const movimientosIniciales: Movimiento[] = [
-  {
-    fecha: "09/08/2026",
-    cliente: "Comercializadora del Norte S.A.S.",
-    tipo: "Depósito",
-    monto: 48000000,
-    estado: "Aprobado",
-  },
-  {
-    fecha: "08/08/2026",
-    cliente: "Miguel Ángel Torres",
-    tipo: "Retiro",
-    monto: 18500000,
-    estado: "Aprobado",
-  },
-  {
-    fecha: "08/08/2026",
-    cliente: "Laura Gómez Restrepo",
-    tipo: "Depósito",
-    monto: 12500000,
-    estado: "Aprobado",
-  },
-  {
-    fecha: "07/08/2026",
-    cliente: "Mariana Cárdenas López",
-    tipo: "Depósito",
-    monto: 23000000,
-    estado: "En proceso",
-  },
-  {
-    fecha: "07/08/2026",
-    cliente: "Andrés Felipe Rojas",
-    tipo: "Retiro",
-    monto: 9100000,
-    estado: "Aprobado",
-  },
-  {
-    fecha: "06/08/2026",
-    cliente: "Importadora Caribe Ltda.",
-    tipo: "Depósito",
-    monto: 56000000,
-    estado: "Aprobado",
-  },
-  {
-    fecha: "06/08/2026",
-    cliente: "Valentina Ospina Vélez",
-    tipo: "Retiro",
-    monto: 6400000,
-    estado: "Rechazado",
-  },
-  {
-    fecha: "05/08/2026",
-    cliente: "Santiago Villaquirán",
-    tipo: "Depósito",
-    monto: 15200000,
-    estado: "Aprobado",
-  },
-  {
-    fecha: "05/08/2026",
-    cliente: "Carlos Eduardo Mejía",
-    tipo: "Retiro",
-    monto: 12000000,
-    estado: "Pendiente",
-  },
-  {
-    fecha: "04/08/2026",
-    cliente: "Diana Paola Ramírez",
-    tipo: "Depósito",
-    monto: 8800000,
-    estado: "Rechazado",
-  },
-  {
-    fecha: "04/08/2026",
-    cliente: "Esteban Rincón Palacios",
-    tipo: "Retiro",
-    monto: 5200000,
-    estado: "Pendiente",
-  },
-  {
-    fecha: "03/08/2026",
-    cliente: "Comercializadora del Norte S.A.S.",
-    tipo: "Retiro",
-    monto: 31000000,
-    estado: "Rechazado",
-  },
-];
-
-const buildSerie = (dias: number) => {
-  const base = 26000000 + dias * 1200000;
-  const step = dias > 20 ? 2 : 1;
-  const arr: { dia: string; depositos: number; retiros: number }[] = [];
-  for (let i = Math.max(0, dias - 14); i < dias; i += step) {
-    const d = new Date(2026, 7, 8 - i);
-    const factor = 0.75 + ((i * 37) % 10) / 10;
-    arr.push({
-      dia: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
-      depositos: Math.round(base * factor * 1.35),
-      retiros: Math.round(base * factor),
-    });
-  }
-  return arr;
-};
-
-const monto = (v: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(v);
+/**
+ * Escala del eje Y según el orden de magnitud real de la serie.
+ *
+ * El prototipo dividía siempre por un millón; con montos chicos todas
+ * las barras quedaban rotuladas "0M".
+ */
+function escala(max: number) {
+  if (max >= 1_000_000) return { div: 1_000_000, sufijo: "M" };
+  if (max >= 1_000) return { div: 1_000, sufijo: "k" };
+  return { div: 1, sufijo: "" };
+}
 
 function Page() {
-  const pagos = useBackoffice((s) => s.pagos);
   const [periodo, setPeriodo] = useState<Periodo>(30);
-  const serie = useMemo(() => buildSerie(periodo), [periodo]);
+  const serieQuery = useSerieDiaria(periodo);
+  // Los últimos movimientos van sin filtro de tipo: la tabla de abajo es
+  // el registro reciente, no el corte del gráfico.
+  const movimientosQuery = useMovimientos("todos", 30);
 
-  const totalDepositos = serie.reduce((a, s) => a + s.depositos, 0);
-  const totalRetiros = serie.reduce((a, s) => a + s.retiros, 0);
-  const neto = totalDepositos - totalRetiros;
+  const serie = serieQuery.data ?? [];
+  const totalIngresos = serie.reduce((a, s) => a + s.ingresos, 0);
+  const totalEgresos = serie.reduce((a, s) => a + s.egresos, 0);
+  const totalInternas = serie.reduce((a, s) => a + s.internas, 0);
+  const neto = totalIngresos - totalEgresos;
+  const operaciones = serie.reduce((a, s) => a + s.cantidad, 0);
 
-  const operacionesPago = pagos.filter((p) => p.estado !== "Rechazado").length;
+  // Tope del eje: el mayor valor de UN DIA, no el acumulado del periodo.
+  // Usar el total hacia que el eje llegara a 330.000 mientras la barra mas
+  // alta valia 250.000, y recharts escalaba las barras contra otro
+  // dominio: se veian aplastadas contra el piso. Con el dominio fijo y
+  // explicito, eje y barras usan la misma escala por construccion.
+  const maximoDiario = serie.reduce(
+    (max, d) => Math.max(max, d.ingresos, d.egresos, d.internas),
+    0,
+  );
+  // Un 10% de aire arriba para que la barra mas alta no toque el borde.
+  const tope = maximoDiario > 0 ? Math.ceil((maximoDiario * 1.1) / 1000) * 1000 : 1000;
+  const { div, sufijo } = escala(tope);
 
   const columns: Column<Movimiento>[] = [
     {
@@ -159,26 +70,31 @@ function Page() {
       label: "Fecha",
       sortable: true,
       filterable: "date",
-      render: (m) => <span className="font-mono text-xs">{m.fecha}</span>,
+      render: (m) => <span className="font-mono text-xs">{formatFechaHora(m.fecha)}</span>,
     },
     {
-      key: "cliente",
+      key: "origenNombre",
       label: "Cliente",
       sortable: true,
       filterable: true,
-      render: (m) => <span className="font-semibold">{m.cliente}</span>,
+      render: (m) => <span className="font-semibold">{m.origenNombre ?? m.destinoNombre ?? "—"}</span>,
     },
     {
       key: "tipo",
       label: "Tipo",
       sortable: true,
-      filterable: "enum",
-      filterOptions: ["Depósito", "Retiro"],
+      filterable: true,
       render: (m) => (
         <span
-          className={`inline-flex items-center gap-1.5 ${m.tipo === "Depósito" ? "text-emerald-700" : "text-red-700"}`}
+          className={`inline-flex items-center gap-1.5 ${
+            m.categoria === "income" ? "text-emerald-700" : "text-red-700"
+          }`}
         >
-          {m.tipo === "Depósito" ? <ArrowDownToLine size={14} /> : <ArrowUpFromLine size={14} />}
+          {m.categoria === "income" ? (
+            <ArrowDownToLine size={14} />
+          ) : (
+            <ArrowUpFromLine size={14} />
+          )}
           {m.tipo}
         </span>
       ),
@@ -187,15 +103,15 @@ function Page() {
       key: "monto",
       label: "Monto",
       sortable: true,
-      render: (m) => <span className="font-mono tabular-nums">{monto(m.monto)}</span>,
+      render: (m) => <span className="font-mono tabular-nums">{formatARS(m.monto)}</span>,
     },
     {
       key: "estado",
       label: "Estado",
       sortable: true,
       filterable: "enum",
-      filterOptions: ["Aprobado", "En proceso", "Rechazado", "Pendiente"],
-      render: (m) => <Badge tone={tonePorEstado(m.estado)}>{m.estado}</Badge>,
+      filterOptions: ["APROBADO", "EN PROGRESO", "PENDIENTE", "RECHAZADO"],
+      render: (m) => estadoBadge(m.estado),
     },
   ];
 
@@ -203,7 +119,7 @@ function Page() {
     <>
       <PageHeader
         title="Panel de depósitos y retiros"
-        description="Totales y evolución de depósitos y retiros en el periodo seleccionado."
+        description="Totales y evolución de ingresos y egresos en el periodo seleccionado."
         action={
           <div className="flex items-center gap-1 bg-card border rounded-lg p-1">
             {PERIODOS.map((p) => (
@@ -222,137 +138,145 @@ function Page() {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {serieQuery.isError ? (
         <Card>
-          <div className="flex items-center justify-between">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Total depósitos
-            </div>
-            <ArrowDownToLine size={16} className="text-emerald-600" />
-          </div>
-          <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums">
-            {monto(totalDepositos)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">Últimos {periodo} días</div>
+          <EmptyState
+            title="No se pudieron cargar las estadísticas"
+            description={mensajeError(serieQuery.error)}
+          />
         </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Total retiros
-            </div>
-            <ArrowUpFromLine size={16} className="text-red-600" />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Total ingresos
+                </div>
+                <ArrowDownToLine size={16} className="text-emerald-600" />
+              </div>
+              <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums">
+                {formatARS(totalIngresos)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Últimos {periodo} días</div>
+            </Card>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Total egresos
+                </div>
+                <ArrowUpFromLine size={16} className="text-red-600" />
+              </div>
+              <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums">
+                {formatARS(totalEgresos)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Últimos {periodo} días</div>
+            </Card>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Flujo neto del periodo
+                </div>
+                <Minus size={16} className="text-moli-blue" />
+              </div>
+              <div
+                className={`font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums ${
+                  neto >= 0 ? "text-emerald-700" : "text-red-700"
+                }`}
+              >
+                {formatARS(neto)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {operaciones} operaciones · {formatARS(totalInternas)} en transferencias internas
+              </div>
+            </Card>
           </div>
-          <div className="font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums">
-            {monto(totalRetiros)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">Últimos {periodo} días</div>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Flujo neto del periodo
-            </div>
-            <Minus size={16} className="text-moli-blue" />
-          </div>
-          <div
-            className={`font-display text-xl md:text-2xl font-semibold mt-1 tabular-nums ${
-              neto >= 0 ? "text-emerald-700" : "text-red-700"
-            }`}
-          >
-            {monto(neto)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Depósitos − retiros · no incluye pagos internacionales
-          </div>
-        </Card>
-      </div>
 
-      <Card className="mb-6">
-        <h3 className="font-display font-semibold mb-4">Evolución — depósitos vs retiros</h3>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={serie} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--moli-border)" />
-              <XAxis
-                dataKey="dia"
-                tick={{ fontSize: 11, fill: "var(--moli-text-muted)" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={(v: number) => `${Math.round(v / 1000000)}M`}
-                tick={{ fontSize: 11, fill: "var(--moli-text-muted)" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                formatter={(value) => [monto(Number(value)), ""]}
-                labelFormatter={(label) => `Día ${label}`}
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "1px solid var(--moli-border)",
-                  fontSize: 12,
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="depositos" name="Depósitos" fill="#059669" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="retiros" name="Retiros" fill="#d21523" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
+          <Card className="mb-6">
+            <h3 className="font-display font-semibold mb-4">Evolución del flujo</h3>
+            <p className="text-xs text-muted-foreground -mt-3 mb-4">
+              Ingresos y egresos son el dinero que entra y sale de la plataforma. Las
+              transferencias entre cuentas propias se muestran aparte: no son ni una cosa ni la
+              otra.
+            </p>
+            <div className="h-72">
+              {serieQuery.isLoading ? (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <Loader2 size={22} className="animate-spin" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={serie} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="var(--moli-border)"
+                    />
+                    <XAxis
+                      dataKey="etiqueta"
+                      tick={{ fontSize: 11, fill: "var(--moli-text-muted)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      // Con 90 días no entran todas las etiquetas.
+                      interval={serie.length > 40 ? 6 : serie.length > 14 ? 2 : 0}
+                    />
+                    <YAxis
+                      domain={[0, tope]}
+                      tickFormatter={(v: number) => `${Math.round(v / div)}${sufijo}`}
+                      tick={{ fontSize: 11, fill: "var(--moli-text-muted)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      formatter={(value) => [formatARS(Number(value)), ""]}
+                      labelFormatter={(label) => `Día ${label}`}
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "1px solid var(--moli-border)",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    {/* Sin animacion: con datos que cambian al mover el
+                        periodo, la transicion dejaba barras a media altura. */}
+                    <Bar dataKey="ingresos" name="Ingresos" fill="#059669" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                    <Bar dataKey="egresos" name="Egresos" fill="#d21523" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                    <Bar dataKey="internas" name="Internas" fill="#64748b" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Card>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 p-0">
-          <div className="px-5 pt-5 pb-2">
-            <h3 className="font-display font-semibold">Últimos movimientos</h3>
-            <p className="text-xs text-muted-foreground">
-              Registro reciente de depósitos y retiros procesados manualmente.
-            </p>
-          </div>
-          <div className="p-5">
-            <DataTable
-              columns={columns}
-              data={movimientosIniciales}
-              keyExtractor={(m) => `${m.fecha}-${m.cliente}-${m.tipo}-${m.monto}`}
-              pageSize={8}
-            />
-          </div>
-        </Card>
-        <div className="space-y-6">
-          <Card>
-            <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Contexto operativo
-            </h4>
-            <ul className="space-y-3 text-sm">
-              <li className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Pagos internacionales no rechazados</span>
-                <span className="font-mono font-semibold tabular-nums">{operacionesPago}</span>
-              </li>
-              <li className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Ratios depósito / retiro</span>
-                <span className="font-mono font-semibold tabular-nums">
-                  1,{Math.round((totalDepositos / (totalRetiros || 1)) * 100) % 100}
-                </span>
-              </li>
-              <li className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Canales</span>
-                <span className="text-xs font-semibold">Transferencia bancaria · manual</span>
-              </li>
-            </ul>
+          <Card className="p-0">
+            <div className="px-5 pt-5 pb-2">
+              <h3 className="font-display font-semibold">Últimos movimientos</h3>
+              <p className="text-xs text-muted-foreground">
+                Registro reciente de operaciones procesadas en la plataforma.
+              </p>
+            </div>
+            <div className="p-5">
+              {movimientosQuery.isLoading ? (
+                <div className="py-10 flex justify-center text-muted-foreground">
+                  <Loader2 size={20} className="animate-spin" />
+                </div>
+              ) : (movimientosQuery.data ?? []).length === 0 ? (
+                <EmptyState
+                  title="Sin movimientos"
+                  description="Todavía no hay operaciones registradas."
+                />
+              ) : (
+                <DataTable
+                  columns={columns}
+                  data={movimientosQuery.data ?? []}
+                  keyExtractor={(m) => m.id}
+                  pageSize={8}
+                />
+              )}
+            </div>
           </Card>
-          <Card>
-            <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Nota
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              En esta fase los depósitos y retiros se concilian de forma manual contra la cuenta
-              recaudadora. Toda conciliación queda respaldada por el comprobante cargado en Gestión
-              de pagos.
-            </p>
-          </Card>
-        </div>
-      </div>
+        </>
+      )}
     </>
   );
 }

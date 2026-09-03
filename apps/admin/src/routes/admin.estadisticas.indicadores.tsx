@@ -1,26 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import {
   Users,
   CheckCircle2,
   ShieldCheck,
-  Landmark,
   ArrowRightLeft,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { PageHeader, Card, Badge, Stat } from "@/components/portal-shell";
-import { useBackoffice, tonePorEstado, formatCOP, formatUSDT } from "@/stores/backoffice-store";
+import { EmptyState } from "@/components/empty-state";
+import { useClientes, tonePorEstado, formatARS, mensajeError } from "@/lib/clientes";
+import { useIndicadores, useSerieDiaria } from "@/lib/movimientos";
 
 export const Route = createFileRoute("/admin/estadisticas/indicadores")({
   component: Page,
-  
 });
 
-const PCT = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+type Periodo = 7 | 30 | 90;
+const PERIODOS: Periodo[] = [7, 30, 90];
+
+/** Colores por estado, alineados con los tonos de los badges. */
+const COLOR = {
+  ok: "#059669",
+  pendiente: "#f59e0b",
+  malo: "#d21523",
+  neutro: "#94a3b8",
+};
 
 function MetricRow({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
@@ -42,330 +49,272 @@ function Progress({ value, tone }: { value: number; tone: "success" | "warn" | "
   );
 }
 
+function GraficoEstados({ datos }: { datos: { name: string; value: number; color: string }[] }) {
+  // Dominio explicito: sin el, recharts escala las barras contra un rango
+  // distinto al que rotula el eje y quedan aplastadas contra el piso.
+  // El minimo de 1 evita un eje degenerado cuando todo esta en cero.
+  const tope = Math.max(1, ...datos.map((d) => d.value));
+  return (
+    <div className="h-44">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={datos} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            allowDecimals={false}
+            domain={[0, tope]}
+            tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip cursor={{ fill: "rgba(0,0,0,0.04)" }} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+            {datos.map((e) => (
+              <Cell key={e.name} fill={e.color} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function Page() {
-  const clientes = useBackoffice((s) => s.clientes);
-  const pagos = useBackoffice((s) => s.pagos);
-  const operacionesOtc = useBackoffice((s) => s.operacionesOtc);
+  const [periodo, setPeriodo] = useState<Periodo>(30);
+  const indicadoresQuery = useIndicadores(periodo);
+  const serieQuery = useSerieDiaria(periodo);
+  const clientesQuery = useClientes();
+
+  const ind = indicadoresQuery.data;
+  const clientes = (clientesQuery.data ?? []).filter((c) => !c.esOperador);
+  const total = clientes.length;
 
   const activos = clientes.filter((c) => c.estadoCuenta === "Activa").length;
   const verificados = clientes.filter((c) => c.estadoVerificacion === "Aprobada").length;
   const cumplen = clientes.filter((c) => c.estadoCumplimiento === "Pasa").length;
-  const pctVerificados = clientes.length ? Math.round((verificados / clientes.length) * 100) : 0;
+  const pctVerificados = total ? Math.round((verificados / total) * 100) : 0;
 
-  const pagosProcesados = pagos.filter((p) => p.estado === "Aprobado");
-  const volumenPagosUSD = pagosProcesados.reduce((a, p) => a + p.monto, 0);
-  const otcAprobadas = operacionesOtc.filter((o) => o.estado === "Aprobada");
-  const volumenOtcCOP = otcAprobadas.reduce((a, o) => a + (o.montoFinalCOP ?? o.montoCOP), 0);
-  const otcVolumenUSDT = otcAprobadas.reduce((a, o) => a + (o.montoFinalUSDT ?? 0), 0);
-
-  const pagosPorEstado = [
-    {
-      name: "Pendiente",
-      value: pagos.filter((p) => p.estado === "Pendiente").length,
-      color: "#f59e0b",
-    },
-    {
-      name: "En proceso",
-      value: pagos.filter((p) => p.estado === "En proceso").length,
-      color: "#64748b",
-    },
-    {
-      name: "Aprobado",
-      value: pagos.filter((p) => p.estado === "Aprobado").length,
-      color: "#059669",
-    },
-    {
-      name: "Rechazado",
-      value: pagos.filter((p) => p.estado === "Rechazado").length,
-      color: "#d21523",
-    },
-  ];
-
-  const otcPorEstado = [
-    {
-      name: "Pendiente",
-      value: operacionesOtc.filter((o) => o.estado === "Pendiente").length,
-      color: "#f59e0b",
-    },
-    {
-      name: "En revisión",
-      value: operacionesOtc.filter((o) => o.estado === "En revisión").length,
-      color: "#64748b",
-    },
-    {
-      name: "Aprobada",
-      value: operacionesOtc.filter((o) => o.estado === "Aprobada").length,
-      color: "#059669",
-    },
-    {
-      name: "Rechazada",
-      value: operacionesOtc.filter((o) => o.estado === "Rechazada").length,
-      color: "#d21523",
-    },
-  ];
+  const cuenta = (fn: (c: (typeof clientes)[number]) => boolean) => clientes.filter(fn).length;
 
   const verificacionPorEstado = [
-    {
-      name: "Aprobada",
-      value: clientes.filter((c) => c.estadoVerificacion === "Aprobada").length,
-      color: "#059669",
-    },
-    {
-      name: "En revisión",
-      value: clientes.filter((c) => c.estadoVerificacion === "En revisión").length,
-      color: "#64748b",
-    },
-    {
-      name: "Pendiente",
-      value: clientes.filter((c) => c.estadoVerificacion === "Pendiente").length,
-      color: "#f59e0b",
-    },
-    {
-      name: "Rechazada",
-      value: clientes.filter((c) => c.estadoVerificacion === "Rechazada").length,
-      color: "#d21523",
-    },
+    { name: "Pendiente", value: cuenta((c) => c.estadoVerificacion === "Pendiente"), color: COLOR.pendiente },
+    { name: "En revisión", value: cuenta((c) => c.estadoVerificacion === "En revisión"), color: COLOR.neutro },
+    { name: "Aprobada", value: verificados, color: COLOR.ok },
+    { name: "Rechazada", value: cuenta((c) => c.estadoVerificacion === "Rechazada"), color: COLOR.malo },
   ];
+
+  const cumplimientoPorEstado = [
+    { name: "Pendiente", value: cuenta((c) => c.estadoCumplimiento === "Pendiente"), color: COLOR.pendiente },
+    { name: "En revisión", value: cuenta((c) => c.estadoCumplimiento === "En revisión"), color: COLOR.neutro },
+    { name: "Pasa", value: cumplen, color: COLOR.ok },
+    { name: "No pasa", value: cuenta((c) => c.estadoCumplimiento === "No pasa"), color: COLOR.malo },
+  ];
+
+  // Los días con más movimiento del periodo, para leer la estacionalidad
+  // sin repetir el gráfico completo de la otra pantalla.
+  const diasActivos = (serieQuery.data ?? [])
+    .filter((d) => d.cantidad > 0)
+    .slice(-7)
+    .map((d) => ({ name: d.etiqueta, value: d.cantidad, color: COLOR.ok }));
+
+  if (indicadoresQuery.isError) {
+    return (
+      <>
+        <PageHeader title="Indicadores generales" description="Panorama del negocio." />
+        <Card>
+          <EmptyState
+            title="No se pudieron cargar los indicadores"
+            description={mensajeError(indicadoresQuery.error)}
+          />
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>
       <PageHeader
-        title="Indicadores generales del negocio"
-        description="Volumen de pagos procesados, operaciones OTC completadas y clientes activos, tomados del estado operativo actual."
+        title="Indicadores generales"
+        description="Volumen operado, base de clientes y estado del proceso de verificación."
+        action={
+          <div className="flex items-center gap-1 bg-card border rounded-lg p-1">
+            {PERIODOS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriodo(p)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  periodo === p ? "bg-moli-blue text-white" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {p} días
+              </button>
+            ))}
+          </div>
+        }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Stat
-          label="Volumen de pagos procesados"
-          value={PCT.format(volumenPagosUSD)}
-          sub={`${pagosProcesados.length} operaciones aprobadas (USD)`}
-        />
-        <Stat
-          label="Operaciones OTC completadas"
-          value={String(otcAprobadas.length)}
-          sub={`${formatCOP(volumenOtcCOP)} entregados`}
-        />
-        <Stat
-          label="Clientes activos"
-          value={String(activos)}
-          sub={`de ${clientes.length} registrados`}
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <Landmark size={15} className="text-moli-blue" />
-            <h3 className="font-display font-semibold">Pagos internacionales</h3>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {pagosPorEstado.map((e) => (
-              <Badge key={e.name} tone={tonePorEstado(e.name)}>
-                {e.name}: {e.value}
-              </Badge>
-            ))}
-          </div>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pagosPorEstado} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: "rgba(0,0,0,0.04)" }}
-                  contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {pagosPorEstado.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <MetricRow
-              label="Volumen aprobado"
-              value={PCT.format(volumenPagosUSD)}
-              note="Solo operaciones aprobadas"
-            />
-            <MetricRow
-              label="Tasa de aprobación"
-              value={`${pagos.length ? Math.round((pagosProcesados.length / pagos.length) * 100) : 0}%`}
-              note={`de ${pagos.length} solicitudes totales`}
-            />
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <ArrowRightLeft size={15} className="text-moli-blue" />
-            <h3 className="font-display font-semibold">Operaciones OTC</h3>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {otcPorEstado.map((e) => (
-              <Badge key={e.name} tone={tonePorEstado(e.name)}>
-                {e.name}: {e.value}
-              </Badge>
-            ))}
-          </div>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={otcPorEstado} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: "rgba(0,0,0,0.04)" }}
-                  contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {otcPorEstado.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <MetricRow
-              label="COP entregados"
-              value={formatCOP(volumenOtcCOP)}
-              note="Operaciones completadas"
-            />
-            <MetricRow
-              label="USDT gestionados"
-              value={formatUSDT(otcVolumenUSDT)}
-              note="Por operaciones de compra"
-            />
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <Users size={15} className="text-moli-blue" />
-            <h3 className="font-display font-semibold">Base de clientes</h3>
-          </div>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={verificacionPorEstado}
-                margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
-              >
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 10, fill: "var(--moli-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: "rgba(0,0,0,0.04)" }}
-                  contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {verificacionPorEstado.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-4 mt-4">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="text-muted-foreground inline-flex items-center gap-1.5">
-                  <CheckCircle2 size={13} /> Verificación biométrica aprobada
-                </span>
-                <span className="font-mono font-semibold tabular-nums">{pctVerificados}%</span>
-              </div>
-              <Progress value={pctVerificados} tone="success" />
-            </div>
-            <div>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="text-muted-foreground inline-flex items-center gap-1.5">
-                  <ShieldCheck size={13} /> Filtro de listas restrictivas superado
-                </span>
-                <span className="font-mono font-semibold tabular-nums">
-                  {cumplen}/{clientes.length}
-                </span>
-              </div>
-              <Progress
-                value={clientes.length ? Math.round((cumplen / clientes.length) * 100) : 0}
-                tone="success"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="text-muted-foreground">Cuentas habilitadas</span>
-                <span className="font-mono font-semibold tabular-nums">
-                  {activos}/{clientes.length}
-                </span>
-              </div>
-              <Progress
-                value={clientes.length ? Math.round((activos / clientes.length) * 100) : 0}
-                tone="success"
-              />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card>
-        <h3 className="font-display font-semibold mb-2">Accesos directos</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Consulta rápidamente los módulos operativos para tomar acciones sobre estos indicadores.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/admin/pagos/aprobacion"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
-          >
-            Aprobar pagos pendientes <ArrowRight size={14} />
-          </Link>
-          <Link
-            to="/admin/otc/tasas"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
-          >
-            Registrar tasas OTC <ArrowRight size={14} />
-          </Link>
-          <Link
-            to="/admin/verificacion/identidad"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
-          >
-            Revisar identidad <ArrowRight size={14} />
-          </Link>
-          <Link
-            to="/admin/pagos/comprobantes"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
-          >
-            Validar comprobantes <ArrowRight size={14} />
-          </Link>
+      {indicadoresQuery.isLoading ? (
+        <div className="py-20 flex justify-center text-muted-foreground">
+          <Loader2 size={22} className="animate-spin" />
         </div>
-      </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Stat
+              label="Volumen operado"
+              value={formatARS(ind?.volumen ?? 0)}
+              sub={`${ind?.operaciones ?? 0} operaciones`}
+            />
+            <Stat
+              label="Ticket promedio"
+              value={formatARS(ind?.ticketPromedio ?? 0)}
+              sub={`Últimos ${periodo} días`}
+            />
+            <Stat
+              label="Comisiones cobradas"
+              value={formatARS(ind?.comisiones ?? 0)}
+              sub={`${ind?.operacionesFallidas ?? 0} operaciones fallidas`}
+            />
+            <Stat
+              label="Clientes activos"
+              value={String(activos)}
+              sub={
+                ind?.altas == null
+                  ? `de ${total} registrados`
+                  : `de ${total} registrados · ${ind.altas} altas`
+              }
+            />
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <div className="flex items-center gap-2 mb-4">
+                <ArrowRightLeft size={15} className="text-moli-blue" />
+                <h3 className="font-display font-semibold">Actividad reciente</h3>
+              </div>
+              {diasActivos.length === 0 ? (
+                <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">
+                  Sin operaciones en el periodo.
+                </div>
+              ) : (
+                <GraficoEstados datos={diasActivos} />
+              )}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <MetricRow
+                  label="Clientes operando"
+                  value={String(ind?.clientesOperando ?? 0)}
+                  note="Con al menos un egreso"
+                />
+                <MetricRow
+                  label="Tasa de éxito"
+                  value={`${
+                    (ind?.operaciones ?? 0) + (ind?.operacionesFallidas ?? 0) > 0
+                      ? Math.round(
+                          ((ind?.operaciones ?? 0) /
+                            ((ind?.operaciones ?? 0) + (ind?.operacionesFallidas ?? 0))) *
+                            100,
+                        )
+                      : 100
+                  }%`}
+                  note="Completadas sobre el total"
+                />
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck size={15} className="text-moli-blue" />
+                <h3 className="font-display font-semibold">Cumplimiento</h3>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {cumplimientoPorEstado.map((e) => (
+                  <Badge key={e.name} tone={tonePorEstado(e.name)}>
+                    {e.name}: {e.value}
+                  </Badge>
+                ))}
+              </div>
+              <GraficoEstados datos={cumplimientoPorEstado} />
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-2 mb-4">
+                <Users size={15} className="text-moli-blue" />
+                <h3 className="font-display font-semibold">Base de clientes</h3>
+              </div>
+              <GraficoEstados datos={verificacionPorEstado} />
+              <div className="space-y-4 mt-4">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                      <CheckCircle2 size={13} /> Identidad aprobada
+                    </span>
+                    <span className="font-mono font-semibold tabular-nums">{pctVerificados}%</span>
+                  </div>
+                  <Progress value={pctVerificados} tone="success" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                      <ShieldCheck size={13} /> Listas restrictivas superadas
+                    </span>
+                    <span className="font-mono font-semibold tabular-nums">
+                      {cumplen}/{total}
+                    </span>
+                  </div>
+                  <Progress value={total ? Math.round((cumplen / total) * 100) : 0} tone="success" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">Cuentas habilitadas</span>
+                    <span className="font-mono font-semibold tabular-nums">
+                      {activos}/{total}
+                    </span>
+                  </div>
+                  <Progress value={total ? Math.round((activos / total) * 100) : 0} tone="success" />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <Card>
+            <h3 className="font-display font-semibold mb-2">Accesos directos</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Módulos operativos para tomar acciones sobre estos indicadores.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/admin/verificacion/identidad"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
+              >
+                Revisar identidad <ArrowRight size={14} />
+              </Link>
+              <Link
+                to="/admin/verificacion/listas"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
+              >
+                Cruzar listas restrictivas <ArrowRight size={14} />
+              </Link>
+              <Link
+                to="/admin/general/movimientos"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
+              >
+                Ver movimientos <ArrowRight size={14} />
+              </Link>
+              <Link
+                to="/admin/general/usuarios"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-accent transition-colors"
+              >
+                Padrón de usuarios <ArrowRight size={14} />
+              </Link>
+            </div>
+          </Card>
+        </>
+      )}
     </>
   );
 }
