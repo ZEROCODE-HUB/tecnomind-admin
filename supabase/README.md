@@ -76,3 +76,54 @@ en otro proyecto, ejecutarlas en orden numérico.
   (`set_transaction_reference` y `trigger_generate_reference`) que llaman a
   funciones distintas. Se dejaron ambos por no cambiar comportamiento a ciegas;
   hay que definir cuál queda.
+
+---
+
+## Fase 2 — Backoffice (migraciones 00014–00020)
+
+| Archivo | Contenido |
+|---|---|
+| `00014_backoffice_roles` | roles, permisos por recurso, asignaciones, auditoría, `has_backoffice_permission()` |
+| `00015_backoffice_roles_seed` | los 6 roles del diseño con su matriz de permisos |
+| `00016_auth_trigger` | `on_auth_user_created` sobre `auth.users` |
+| `00017_permisos_efectivos` | `get_my_backoffice_permissions()` |
+| `00018_privilegios_por_columna` | **cierra escalada de privilegios y alteración de saldos** |
+| `00019_vista_admin_transacciones` | devuelve `admin_transaction_list` al backoffice |
+| `00020_trigger_qr_security_definer` | corrige el trigger de sincronización de QR |
+
+### Vulnerabilidad crítica corregida en 00018
+
+Verificada explotándola con un usuario común contra el endpoint REST:
+
+```
+PATCH /rest/v1/accounts?id=eq.<propia>  {"balance": 999999}       -> saldo modificado
+PATCH /rest/v1/users?id=eq.<propio>     {"role": "admin"}          -> usuario hecho admin
+PATCH /rest/v1/users?id=eq.<propio>     {"verification_status":"verified"} -> KYC auto-aprobado
+```
+
+**Causa:** las políticas `Users can update own X` evalúan *quién* escribe
+(`auth.uid() = user_id`) pero no *qué* escribe. RLS opera a nivel de fila, no de
+columna: siendo dueño de la fila se podía tocar cualquier campo, incluido el
+propio saldo o el propio rol. Como `is_admin()` lee `users.role`, la escalada
+daba acceso a todos los datos del sistema.
+
+**Corrección:** privilegios de columna (`GRANT UPDATE (col)`), que sí son
+granulares. RLS decide qué filas, el GRANT decide qué columnas. Lo demás se
+modifica desde funciones `SECURITY DEFINER` o con `service_role`.
+
+Los cinco ataques quedaron verificados como bloqueados (HTTP 403), y lo legítimo
+—cambiar teléfono y alias— sigue funcionando.
+
+### Roles del backoffice
+
+| Rol | Lee | Modifica | Crea | Borra |
+|---|---|---|---|---|
+| Admin | 16 | 16 | 16 | 16 |
+| Compliance | 16 | 2 | 0 | 0 |
+| Management | 16 | 15 | 2 | 0 |
+| Reader | 16 | 0 | 0 | 0 |
+| Accounting | 3 | 0 | 0 | 0 |
+| User | 0 | 0 | 0 | 0 |
+
+El log de auditoría es inmutable por diseño: hay política de INSERT y de SELECT,
+ninguna de UPDATE ni DELETE. Nadie puede alterarlo, tampoco un admin.

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { DemoModeProvider } from "../contexts/demo-mode";
+import { AuthProvider } from "../contexts/auth";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -77,10 +78,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DemoModeProvider>
-        <Outlet />
-        <Toaster position="top-right" richColors />
-      </DemoModeProvider>
+      <AuthProvider>
+        <DemoModeProvider>
+          <Outlet />
+          <Toaster position="top-right" richColors />
+        </DemoModeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

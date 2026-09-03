@@ -21,6 +21,7 @@ import { PortalShell, type NavItem } from "@/components/portal-shell";
 import { useDemoMode } from "@/contexts/demo-mode";
 import { RouteSkeleton } from "@/components/route-skeleton";
 import { AdminChatbot } from "@/components/admin-chatbot";
+import { RequireAuth } from "@/components/require-auth";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -71,9 +72,11 @@ function AdminLayout() {
     if (role !== "admin" && role !== "operador") setRole("admin");
   }, [role, setRole]);
   return (
-    <PortalShell nav={nav} title="Backoffice">
-      <Outlet />
-      <AdminChatbot />
-    </PortalShell>
+    <RequireAuth>
+      <PortalShell nav={nav} title="Backoffice">
+        <Outlet />
+        <AdminChatbot />
+      </PortalShell>
+    </RequireAuth>
   );
 }
