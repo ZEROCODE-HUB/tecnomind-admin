@@ -1,10 +1,23 @@
 # TecnoMind — Fiat
 
+> ## ⚠️ La app de usuarios NO es la web de este repo
+>
+> El producto es la **app React Native** que vive en
+> `NoCodeHero83/magnate-virtual-wallet`, rama **`master`**. Ese repo tiene dos
+> ramas con dos aplicaciones distintas y `main` — la rama por defecto — es una
+> web que **no va**.
+>
+> `apps/wallet` (la web de usuarios) queda **en pausa**. El detalle de qué se
+> hizo, qué sirve y cómo retomarlo:
+> [docs/web-de-usuarios-estado.md](docs/web-de-usuarios-estado.md).
+>
+> **Lo que sí sigue vigente de este repo:** el esquema de Supabase
+> (`supabase/migrations`, 35 migraciones, incluidas las correcciones de
+> seguridad) y el backoffice (`apps/admin`). Nada de ese trabajo se pierde: la
+> app nativa consume la misma base.
+
 Monorepo del producto **fiat** (sin cripto) de TecnoMind. Derivado de Magnate,
 con el backoffice basado en el diseño de `ZEROCODE-HUB/tecnomind-admin`.
-
-El producto con cripto vive en un repo aparte: `ZEROCODE-HUB/tecnomind-otc`,
-con su **propio proyecto Supabase**.
 
 ## Estructura
 
