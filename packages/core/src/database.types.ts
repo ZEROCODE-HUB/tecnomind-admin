@@ -2358,6 +2358,13 @@ export type Database = {
       }
     }
     Functions: {
+      alias_disponible: {
+        Args: { p_alias: string }
+        Returns: {
+          disponible: boolean
+          motivo: string
+        }[]
+      }
       archive_old_api_logs: { Args: never; Returns: undefined }
       backoffice_audit: {
         Args: {

@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+
 import { OTP_MAX_ATTEMPTS, OTP_COUNTDOWN_SECONDS } from "@/constants/app";
+import { supabase } from "@/lib/supabase";
 
 interface UseOtpVerificationOptions {
   maxAttempts?: number;
   countdownSeconds?: number;
-  correctCode?: string;
+  /** Para qué se pide el código; separa los circuitos en la base. */
+  purpose?: string;
   onSuccess?: () => void;
 }
 
@@ -19,19 +22,34 @@ interface UseOtpVerificationReturn {
   otpError: string;
   isVerifyDisabled: boolean;
   maxAttempts: number;
+  /** true si no hay canal de entrega configurado (ver migración 00035). */
+  sinCanal: boolean;
   verify: () => void;
   resendCode: () => void;
   reset: () => void;
   clearError: () => void;
 }
 
+/** Motivos que devuelve la base, traducidos a algo que el usuario entienda. */
+const MENSAJES: Record<string, string> = {
+  expirado: "El código venció. Pedí uno nuevo.",
+  no_solicitado: "Todavía no pediste un código.",
+  bloqueado: "Superaste el límite de intentos. Generá un código nuevo.",
+  demasiados_intentos: "Pediste demasiados códigos. Esperá unos minutos.",
+};
+
 /**
- * Hook para manejar la verificación OTP con countdown, intentos limitados y bloqueo
+ * Verificación por código de un solo uso.
+ *
+ * Antes esto comparaba contra la constante "123456" dentro del navegador:
+ * cualquiera que llegara a la pantalla confirmaba la operación. Ahora el
+ * código lo genera y lo valida la base (`otp_solicitar` / `otp_verificar`),
+ * que guarda solo el hash, lo expira y cuenta los intentos.
  */
 export const useOtpVerification = ({
   maxAttempts = OTP_MAX_ATTEMPTS,
   countdownSeconds = OTP_COUNTDOWN_SECONDS,
-  correctCode = "123456",
+  purpose = "transfer",
   onSuccess,
 }: UseOtpVerificationOptions = {}): UseOtpVerificationReturn => {
   const [otpValue, setOtpValue] = useState("");
@@ -42,8 +60,34 @@ export const useOtpVerification = ({
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [sinCanal, setSinCanal] = useState(false);
 
-  // Reset all state
+  // onSuccess suele ser una función nueva en cada render; guardarla en una
+  // ref evita rehacer verify() y reiniciar el temporizador.
+  const alAcertar = useRef(onSuccess);
+  useEffect(() => {
+    alAcertar.current = onSuccess;
+  }, [onSuccess]);
+
+  const solicitar = useCallback(async () => {
+    setIsSendingCode(true);
+    setOtpError("");
+    try {
+      const { data, error } = await supabase.rpc("otp_solicitar", { p_proposito: purpose });
+      if (error) throw error;
+      const fila = (data ?? [])[0];
+      setSinCanal(fila?.motivo === "sin_canal");
+      if (fila?.motivo === "demasiados_intentos") {
+        setIsBlocked(true);
+        setOtpError(MENSAJES.demasiados_intentos);
+      }
+    } catch {
+      setOtpError("No se pudo enviar el código. Intentá de nuevo.");
+    } finally {
+      setIsSendingCode(false);
+    }
+  }, [purpose]);
+
   const reset = useCallback(() => {
     setOtpValue("");
     setOtpError("");
@@ -52,17 +96,14 @@ export const useOtpVerification = ({
     setIsBlocked(false);
     setIsVerifying(false);
     setIsActive(true);
-  }, [countdownSeconds]);
+    void solicitar();
+  }, [countdownSeconds, solicitar]);
 
-  // Clear error message
-  const clearError = useCallback(() => {
-    setOtpError("");
-  }, []);
+  const clearError = useCallback(() => setOtpError(""), []);
 
-  // Countdown timer
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    
+    let timer: ReturnType<typeof setInterval>;
+
     if (isActive && countdown > 0 && !isBlocked) {
       timer = setInterval(() => {
         setCountdown((prev) => {
@@ -74,54 +115,55 @@ export const useOtpVerification = ({
         });
       }, 1000);
     }
-    
+
     return () => clearInterval(timer);
   }, [isActive, countdown, isBlocked]);
 
-  // Verify OTP
-  const verify = useCallback(() => {
+  const verify = useCallback(async () => {
     if (isBlocked || attempts >= maxAttempts || otpValue.length !== 6) return;
 
     setIsVerifying(true);
     setOtpError("");
 
-    // Simulate API verification
-    setTimeout(() => {
-      if (otpValue === correctCode) {
+    try {
+      const { data, error } = await supabase.rpc("otp_verificar", {
+        p_codigo: otpValue,
+        p_proposito: purpose,
+      });
+      if (error) throw error;
+      const fila = (data ?? [])[0];
+
+      if (fila?.valido) {
         setIsActive(false);
-        onSuccess?.();
-      } else {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-
-        if (newAttempts >= maxAttempts) {
-          setIsBlocked(true);
-          setOtpError(`Has superado el límite de ${maxAttempts} intentos. Genera un nuevo código.`);
-        } else {
-          setOtpError(`Código incorrecto. Te quedan ${maxAttempts - newAttempts} intento(s)`);
-        }
-        setOtpValue("");
-        setIsVerifying(false);
+        alAcertar.current?.();
+        return;
       }
-    }, 1500);
-  }, [otpValue, attempts, maxAttempts, isBlocked, correctCode, onSuccess]);
 
-  // Resend code
-  const resendCode = useCallback(() => {
-    setIsSendingCode(true);
-    
-    // Simulate sending new code
-    setTimeout(() => {
-      reset();
-      setIsSendingCode(false);
-    }, 1500);
-  }, [reset]);
+      const nuevos = attempts + 1;
+      setAttempts(nuevos);
+      const motivo = fila?.motivo ?? "incorrecto";
 
-  const isVerifyDisabled = 
-    otpValue.length !== 6 || 
-    isVerifying || 
-    isBlocked || 
-    attempts >= maxAttempts;
+      if (motivo !== "incorrecto") {
+        setIsBlocked(true);
+        setOtpError(MENSAJES[motivo] ?? "No se pudo verificar el código.");
+      } else if (nuevos >= maxAttempts) {
+        setIsBlocked(true);
+        setOtpError(`Superaste el límite de ${maxAttempts} intentos. Generá un código nuevo.`);
+      } else {
+        setOtpError(`Código incorrecto. Te ${maxAttempts - nuevos === 1 ? "queda" : "quedan"} ${maxAttempts - nuevos} intento${maxAttempts - nuevos === 1 ? "" : "s"}.`);
+      }
+      setOtpValue("");
+    } catch {
+      setOtpError("No se pudo verificar el código. Revisá tu conexión.");
+    } finally {
+      setIsVerifying(false);
+    }
+  }, [otpValue, attempts, maxAttempts, isBlocked, purpose]);
+
+  const resendCode = useCallback(() => reset(), [reset]);
+
+  const isVerifyDisabled =
+    otpValue.length !== 6 || isVerifying || isBlocked || attempts >= maxAttempts;
 
   return {
     otpValue,
@@ -134,7 +176,8 @@ export const useOtpVerification = ({
     otpError,
     isVerifyDisabled,
     maxAttempts,
-    verify,
+    sinCanal,
+    verify: () => void verify(),
     resendCode,
     reset,
     clearError,

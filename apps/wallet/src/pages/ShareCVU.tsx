@@ -1,48 +1,85 @@
-import { ArrowLeft, Copy, Download, Share2 } from "lucide-react";
+import { useRef } from "react";
+import { ArrowLeft, Copy, Download, Share2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
+import { CodigoQR, descargarQR } from "@/components/CodigoQR";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCuenta, useQrCuenta } from "@/hooks/useAccount";
 
+/**
+ * Datos de cuenta para recibir dinero.
+ *
+ * Antes esta pantalla mostraba un CVU, un alias y un titular fijos en el
+ * código, y un QR que era un dibujo. Un cliente que compartiera esos
+ * datos habría estado pidiendo que le pagaran a una cuenta inexistente.
+ */
 const ShareCVU = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: cuenta, isLoading, isError } = useCuenta();
+  const { data: qrData } = useQrCuenta();
+  const contenedorQR = useRef<HTMLDivElement>(null);
 
-  const accountData = {
-    titular: "Santiago TecnoMind",
-    cvu: "0000003100012345678901",
-    alias: "tecnomind.startup.app",
-  };
+  const titular = user?.name ?? "—";
+
+  const textoParaCompartir = cuenta
+    ? `Titular: ${titular}\nCVU: ${cuenta.cvu}\nAlias: ${cuenta.alias}\nCBU: ${cuenta.cbu}`
+    : "";
 
   const handleCopyData = async () => {
-    const textToCopy = `Titular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
-    
+    if (!cuenta) return;
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      await navigator.clipboard.writeText(textoParaCompartir);
       toast({
         title: "¡Datos copiados con éxito!",
         description: "Los datos de tu cuenta fueron copiados al portapapeles.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error al copiar",
-        description: "No se pudieron copiar los datos. Intenta de nuevo.",
+        description: "No se pudieron copiar los datos. Intentá de nuevo.",
         variant: "destructive",
       });
     }
   };
 
+  /** Comparte por la hoja nativa si existe; si no, copia. */
+  const handleShare = async () => {
+    if (!cuenta) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Mis datos de cuenta", text: textoParaCompartir });
+        return;
+      } catch {
+        // El usuario canceló la hoja de compartir: no es un error.
+        return;
+      }
+    }
+    void handleCopyData();
+  };
+
   const handleDownloadQR = () => {
-    toast({
-      title: "Imagen guardada",
-      description: "El código QR se ha guardado en tu dispositivo.",
-    });
+    const canvas = contenedorQR.current?.querySelector("canvas") ?? null;
+    if (descargarQR(canvas, `cvu-${cuenta?.alias ?? "cuenta"}`)) {
+      toast({
+        title: "Imagen guardada",
+        description: "El código QR se descargó en tu dispositivo.",
+      });
+    } else {
+      toast({
+        title: "El QR todavía no está listo",
+        description: "Esperá a que termine de generarse.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between px-4 h-16">
           <button
@@ -53,161 +90,98 @@ const ShareCVU = () => {
             <ArrowLeft className="size-5 text-foreground" />
           </button>
 
-          <h1 className="text-lg font-semibold text-foreground">
-            Mis datos de cuenta
-          </h1>
+          <h1 className="text-lg font-semibold text-foreground">Mis datos de cuenta</h1>
 
           <Logo className="h-8" showText={false} />
         </div>
       </header>
 
-      {/* Content */}
       <main className="flex-1 p-4 space-y-6 max-w-md mx-auto w-full">
-        {/* QR Card */}
-        <Card className="p-6 rounded-3xl shadow-lg bg-card border-border">
-          <div className="flex flex-col items-center space-y-6">
-            {/* QR Code Placeholder */}
-            <div className="relative">
-              <div className="w-56 h-56 bg-white rounded-2xl p-4 shadow-inner flex items-center justify-center">
-                <svg
-                  viewBox="0 0 200 200"
-                  className="w-full h-full"
-                  fill="currentColor"
+        {isLoading ? (
+          <Card className="p-10 rounded-3xl flex justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </Card>
+        ) : isError || !cuenta ? (
+          <Card className="p-8 rounded-3xl text-center space-y-2">
+            <p className="font-semibold text-foreground">No pudimos cargar tu cuenta</p>
+            <p className="text-sm text-muted-foreground">
+              Revisá tu conexión y volvé a intentar.
+            </p>
+          </Card>
+        ) : (
+          <>
+            <Card className="p-6 rounded-3xl shadow-lg bg-card border-border">
+              <div className="flex flex-col items-center space-y-6">
+                <div
+                  ref={contenedorQR}
+                  className="w-56 h-56 bg-white rounded-2xl p-4 shadow-inner flex items-center justify-center"
                 >
-                  {/* Simulated QR Code Pattern */}
-                  <rect x="0" y="0" width="200" height="200" fill="white" />
-                  
-                  {/* Corner squares */}
-                  <rect x="10" y="10" width="50" height="50" fill="#0A2540" />
-                  <rect x="17" y="17" width="36" height="36" fill="white" />
-                  <rect x="24" y="24" width="22" height="22" fill="#0A2540" />
-                  
-                  <rect x="140" y="10" width="50" height="50" fill="#0A2540" />
-                  <rect x="147" y="17" width="36" height="36" fill="white" />
-                  <rect x="154" y="24" width="22" height="22" fill="#0A2540" />
-                  
-                  <rect x="10" y="140" width="50" height="50" fill="#0A2540" />
-                  <rect x="17" y="147" width="36" height="36" fill="white" />
-                  <rect x="24" y="154" width="22" height="22" fill="#0A2540" />
-                  
-                  {/* Pattern blocks */}
-                  <rect x="70" y="10" width="10" height="10" fill="#0A2540" />
-                  <rect x="90" y="10" width="10" height="10" fill="#0A2540" />
-                  <rect x="110" y="10" width="10" height="10" fill="#0A2540" />
-                  <rect x="70" y="30" width="10" height="10" fill="#0A2540" />
-                  <rect x="100" y="30" width="10" height="10" fill="#0A2540" />
-                  <rect x="120" y="30" width="10" height="10" fill="#0A2540" />
-                  <rect x="80" y="50" width="10" height="10" fill="#0A2540" />
-                  <rect x="110" y="50" width="10" height="10" fill="#0A2540" />
-                  
-                  <rect x="10" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="30" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="50" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="70" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="90" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="110" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="130" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="150" y="70" width="10" height="10" fill="#0A2540" />
-                  <rect x="170" y="70" width="10" height="10" fill="#0A2540" />
-                  
-                  <rect x="10" y="90" width="10" height="10" fill="#0A2540" />
-                  <rect x="40" y="90" width="10" height="10" fill="#0A2540" />
-                  <rect x="80" y="90" width="20" height="20" fill="#2F80ED" />
-                  <rect x="120" y="90" width="10" height="10" fill="#0A2540" />
-                  <rect x="160" y="90" width="10" height="10" fill="#0A2540" />
-                  <rect x="180" y="90" width="10" height="10" fill="#0A2540" />
-                  
-                  <rect x="10" y="110" width="10" height="10" fill="#0A2540" />
-                  <rect x="30" y="110" width="10" height="10" fill="#0A2540" />
-                  <rect x="50" y="110" width="10" height="10" fill="#0A2540" />
-                  <rect x="120" y="110" width="10" height="10" fill="#0A2540" />
-                  <rect x="140" y="110" width="10" height="10" fill="#0A2540" />
-                  <rect x="160" y="110" width="10" height="10" fill="#0A2540" />
-                  <rect x="180" y="110" width="10" height="10" fill="#0A2540" />
-                  
-                  <rect x="70" y="130" width="10" height="10" fill="#0A2540" />
-                  <rect x="90" y="130" width="10" height="10" fill="#0A2540" />
-                  <rect x="110" y="130" width="10" height="10" fill="#0A2540" />
-                  <rect x="140" y="140" width="50" height="50" fill="none" stroke="#0A2540" strokeWidth="4" />
-                  <rect x="155" y="155" width="20" height="20" fill="#0A2540" />
-                  
-                  <rect x="70" y="150" width="10" height="10" fill="#0A2540" />
-                  <rect x="100" y="150" width="10" height="10" fill="#0A2540" />
-                  <rect x="120" y="150" width="10" height="10" fill="#0A2540" />
-                  <rect x="70" y="170" width="10" height="10" fill="#0A2540" />
-                  <rect x="90" y="170" width="10" height="10" fill="#0A2540" />
-                  <rect x="110" y="170" width="10" height="10" fill="#0A2540" />
-                  <rect x="70" y="180" width="10" height="10" fill="#0A2540" />
-                  <rect x="100" y="180" width="10" height="10" fill="#0A2540" />
-                </svg>
+                  {/* El contenido lo define la base, no el cliente: así el
+                      lector de la app entiende lo que otro comparte. */}
+                  <CodigoQR valor={qrData ?? null} tamano={192} />
+                </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={handleDownloadQR}
+                  className="text-muted-foreground hover:text-accent gap-2"
+                >
+                  <Download className="size-5" />
+                  Descargar QR
+                </Button>
               </div>
-            </div>
+            </Card>
 
-            {/* Download Button */}
+            <Card className="p-6 rounded-3xl shadow-lg bg-card border-border space-y-5">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Titular
+                  </span>
+                  <p className="text-foreground font-semibold text-lg">{titular}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    CVU
+                  </span>
+                  <p className="text-foreground font-mono text-base break-all">{cuenta.cvu}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    CBU
+                  </span>
+                  <p className="text-foreground font-mono text-base break-all">{cuenta.cbu}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Alias
+                  </span>
+                  <p className="text-accent font-semibold text-base">{cuenta.alias}</p>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleCopyData}
+                className="w-full h-14 rounded-xl bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-base gap-2"
+              >
+                <Copy className="size-5" />
+                Copiar datos
+              </Button>
+            </Card>
+
             <Button
-              variant="ghost"
-              onClick={handleDownloadQR}
-              className="text-muted-foreground hover:text-accent gap-2"
+              variant="outline"
+              onClick={handleShare}
+              className="w-full h-14 rounded-xl border-border text-foreground font-semibold text-base gap-2 hover:border-accent hover:text-accent"
             >
-              <Download className="size-5" />
-              Descargar QR
+              <Share2 className="size-5" />
+              Compartir
             </Button>
-          </div>
-        </Card>
-
-        {/* Account Data Card */}
-        <Card className="p-6 rounded-3xl shadow-lg bg-card border-border space-y-5">
-          <div className="space-y-4">
-            {/* Titular */}
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Titular
-              </span>
-              <p className="text-foreground font-semibold text-lg">
-                {accountData.titular}
-              </p>
-            </div>
-
-            {/* CVU */}
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                CVU
-              </span>
-              <p className="text-foreground font-mono text-base break-all">
-                {accountData.cvu}
-              </p>
-            </div>
-
-            {/* Alias */}
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Alias
-              </span>
-              <p className="text-accent font-semibold text-base">
-                {accountData.alias}
-              </p>
-            </div>
-          </div>
-
-          {/* Copy Button */}
-          <Button
-            onClick={handleCopyData}
-            className="w-full h-14 rounded-xl bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-base gap-2"
-          >
-            <Copy className="size-5" />
-            Copiar datos
-          </Button>
-        </Card>
-
-        {/* Share Button */}
-        <Button
-          variant="outline"
-          onClick={handleCopyData}
-          className="w-full h-14 rounded-xl border-border text-foreground font-semibold text-base gap-2 hover:border-accent hover:text-accent"
-        >
-          <Share2 className="size-5" />
-          Compartir
-        </Button>
+          </>
+        )}
       </main>
     </div>
   );

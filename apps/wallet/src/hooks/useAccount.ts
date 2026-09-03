@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/lib/supabase";
 import { formatCurrencyARS } from "@/lib/formatters";
@@ -120,6 +120,87 @@ export function useLimites() {
         diarioGastado: Number(data.daily_spent ?? 0),
         porOperacion: Number(data.per_transaction_limit ?? 0),
       };
+    },
+  });
+}
+
+/**
+ * Código QR estático de la cuenta.
+ *
+ * Lo crea `create_user_bank_account()` al dar de alta al usuario y su
+ * `qr_data` es el JSON que debe viajar dentro del QR (cvu, cbu, alias y
+ * account_id). No se arma en el cliente: así el que escanea y el que
+ * comparte hablan del mismo formato.
+ */
+export function useQrCuenta() {
+  const { data: cuenta } = useCuenta();
+
+  return useQuery({
+    queryKey: ["qr", cuenta?.id],
+    enabled: Boolean(cuenta?.id),
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase
+        .from("qr_codes")
+        .select("qr_data")
+        .eq("account_id", cuenta!.id)
+        .eq("qr_type", "static")
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.qr_data ?? null;
+    },
+  });
+}
+
+/**
+ * Comprueba si un alias está libre.
+ *
+ * La respuesta la da la base (`alias_disponible`), no el cliente: acá no
+ * hay forma de saber qué aliases existen sin poder leer las cuentas
+ * ajenas, y eso es justo lo que el RLS impide.
+ */
+export function useVerificarAlias() {
+  return useMutation({
+    mutationFn: async (alias: string): Promise<{ disponible: boolean; motivo: string | null }> => {
+      const { data, error } = await supabase.rpc("alias_disponible", { p_alias: alias });
+      if (error) throw error;
+      const fila = (data ?? [])[0];
+      return {
+        disponible: Boolean(fila?.disponible),
+        motivo: fila?.motivo ?? null,
+      };
+    },
+  });
+}
+
+/**
+ * Guarda el alias nuevo.
+ *
+ * Es un UPDATE directo y no una función: 00018 dejó `GRANT UPDATE (alias)`
+ * al titular justamente para esto, y la base se encarga del resto —
+ * registra el historial y sincroniza el QR de la cuenta por trigger.
+ */
+export function useCambiarAlias() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ cuentaId, alias }: { cuentaId: string; alias: string }) => {
+      const { error } = await supabase
+        .from("accounts")
+        .update({ alias: alias.toLowerCase().trim() })
+        .eq("id", cuentaId);
+
+      // La constraint UNIQUE es la que decide de verdad: entre la
+      // verificación y el guardado alguien pudo tomar el alias.
+      if (error?.code === "23505") {
+        throw new Error("Ese alias acaba de ser tomado. Probá con otro.");
+      }
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["cuenta"] });
+      void queryClient.invalidateQueries({ queryKey: ["qr"] });
     },
   });
 }

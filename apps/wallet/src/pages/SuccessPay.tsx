@@ -21,14 +21,37 @@ const SuccessPay = () => {
   const location = useLocation();
   const [showShareMenu, setShowShareMenu] = useState(false);
   
-  // Get payment data from navigation state or use defaults
   const state = location.state as PaymentState | null;
-  const paymentData = {
-    amount: state?.amount || "4500.00",
-    recipient: state?.recipient || { name: "Café Buenos Aires", cuit: "30-71234567-9", type: "CUIT" },
-    transactionId: state?.transactionId || "MAG-88293-X",
-    date: state?.date ? new Date(state.date) : new Date()
-  };
+
+  // Sin datos de la operación no hay comprobante que mostrar. Antes se
+  // caía a un pago inventado ("Café Buenos Aires", "MAG-88293-X"): quien
+  // entrara a esta URL veía el comprobante de una transferencia que nunca
+  // ocurrió.
+  const paymentData = state
+    ? {
+        amount: state.amount,
+        recipient: state.recipient,
+        transactionId: state.transactionId,
+        date: state.date ? new Date(state.date) : new Date(),
+      }
+    : null;
+
+  // Todos los hooks se llamaron arriba, así que el retorno temprano es seguro.
+  if (!paymentData) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 gap-3 text-center">
+        <p className="text-lg font-semibold text-foreground">
+          No hay un comprobante para mostrar
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Entrá desde una transferencia para ver su comprobante.
+        </p>
+        <Button onClick={() => navigate("/dashboard")} className="mt-2">
+          Volver al inicio
+        </Button>
+      </div>
+    );
+  }
 
   const formatCurrencyLocal = (value: string) => {
     const num = parseFloat(value);

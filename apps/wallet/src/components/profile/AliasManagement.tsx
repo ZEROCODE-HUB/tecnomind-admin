@@ -1,73 +1,88 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-interface AliasManagementProps {
-  userCuit?: string;
-}
+import { useCuenta, useVerificarAlias, useCambiarAlias } from "@/hooks/useAccount";
 
-const AliasManagement = ({ userCuit = "20123456789" }: AliasManagementProps) => {
-  const [alias, setAlias] = useState(`tecnomind.${userCuit}`);
-  const [originalAlias] = useState(`tecnomind.${userCuit}`);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<"idle" | "available" | "unavailable">("idle");
+/**
+ * Cambio de alias de la cuenta.
+ *
+ * Antes esta pantalla simulaba todo: el alias se armaba con el CUIT en
+ * el propio componente, la verificación era un setTimeout con
+ * Math.random() y "Confirmar" no guardaba nada. Ahora el alias sale de la
+ * cuenta, la disponibilidad la responde la base y el guardado es real.
+ */
+const AliasManagement = () => {
+  const { data: cuenta, isLoading } = useCuenta();
+  const verificar = useVerificarAlias();
+  const guardar = useCambiarAlias();
 
-  const hasChanged = alias !== originalAlias;
+  const [alias, setAlias] = useState("");
+  const [resultado, setResultado] = useState<{ disponible: boolean; motivo: string | null } | null>(
+    null,
+  );
 
-  const handleVerify = async () => {
-    setIsVerifying(true);
-    setVerificationStatus("idle");
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    // Simulate: available if alias contains user's CUIT
-    const isAvailable = alias.includes(userCuit) || Math.random() > 0.3;
-    setVerificationStatus(isAvailable ? "available" : "unavailable");
-    setIsVerifying(false);
-  };
+  // El alias real llega de forma asíncrona; se copia al campo la primera
+  // vez y en cada cambio confirmado.
+  useEffect(() => {
+    if (cuenta?.alias) setAlias(cuenta.alias);
+  }, [cuenta?.alias]);
 
-  const handleConfirm = async () => {
-    setIsConfirming(true);
-    
-    // Simulate API call to save the alias
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.success("Alias actualizado correctamente");
-    setVerificationStatus("idle");
-    setIsConfirming(false);
-  };
+  const aliasOriginal = cuenta?.alias ?? "";
+  const cambio = alias.trim().toLowerCase() !== aliasOriginal.toLowerCase();
 
   const handleAliasChange = (value: string) => {
-    setAlias(value.toLowerCase().replace(/[^a-z0-9.]/g, ""));
-    setVerificationStatus("idle");
+    setAlias(value.toLowerCase().replace(/[^a-z0-9.-]/g, ""));
+    setResultado(null);
+  };
+
+  const handleVerify = () =>
+    verificar.mutate(alias.trim(), {
+      onSuccess: setResultado,
+      onError: () =>
+        toast.error("No se pudo verificar el alias. Revisá tu conexión e intentá de nuevo."),
+    });
+
+  const handleConfirm = () => {
+    if (!cuenta) return;
+    guardar.mutate(
+      { cuentaId: cuenta.id, alias: alias.trim() },
+      {
+        onSuccess: () => {
+          toast.success("Alias actualizado correctamente");
+          setResultado(null);
+        },
+        onError: (e: Error) => {
+          toast.error(e.message);
+          setResultado(null);
+        },
+      },
+    );
   };
 
   return (
     <section className="md:hidden bg-card border border-border rounded-2xl p-4 mx-4 mt-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-foreground mb-3">
-        Administración de Alias
-      </h3>
-      
+      <h3 className="text-sm font-semibold text-foreground mb-3">Administración de Alias</h3>
+
       <div className="flex gap-2">
         <Input
           value={alias}
           onChange={(e) => handleAliasChange(e.target.value)}
-          placeholder="tecnomind.tucuit"
+          placeholder="tunombre.apellido"
+          disabled={isLoading || guardar.isPending}
           className="flex-1 bg-muted/50 border-border rounded-xl"
         />
         <Button
           onClick={handleVerify}
-          disabled={isVerifying || !alias || !hasChanged || verificationStatus === "available"}
-          variant={verificationStatus === "available" ? "outline" : "default"}
+          disabled={verificar.isPending || !alias || !cambio || resultado?.disponible === true}
+          variant={resultado?.disponible ? "outline" : "default"}
           className="rounded-xl px-4 min-w-[100px]"
         >
-          {isVerifying ? (
+          {verificar.isPending ? (
             <Loader2 className="size-4 animate-spin" />
-          ) : verificationStatus === "available" ? (
+          ) : resultado?.disponible ? (
             <Check className="size-4 text-green-600" />
           ) : (
             "Verificar"
@@ -75,35 +90,29 @@ const AliasManagement = ({ userCuit = "20123456789" }: AliasManagementProps) => 
         </Button>
       </div>
 
-      {verificationStatus === "available" && (
+      {resultado?.disponible && (
         <div className="mt-3 space-y-3">
           <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/30 dark:text-green-400 px-3 py-2 rounded-xl">
             <Check className="size-4" />
-            <span>Alias Disponible</span>
+            <span>Alias disponible</span>
           </div>
-          <Button
-            onClick={handleConfirm}
-            disabled={isConfirming}
-            className="w-full rounded-xl"
-          >
-            {isConfirming ? (
-              <Loader2 className="size-4 animate-spin mr-2" />
-            ) : null}
-            Confirmar Cambio
+          <Button onClick={handleConfirm} disabled={guardar.isPending} className="w-full rounded-xl">
+            {guardar.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+            Confirmar cambio
           </Button>
         </div>
       )}
 
-      {verificationStatus === "unavailable" && (
+      {resultado && !resultado.disponible && (
         <div className="flex items-center gap-2 mt-3 text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-xl">
-          <X className="size-4" />
-          <span>Alias no disponible. Intenta con otro.</span>
+          <X className="size-4 shrink-0" />
+          <span>{resultado.motivo ?? "Alias no disponible. Probá con otro."}</span>
         </div>
       )}
 
-      {!hasChanged && verificationStatus === "idle" && (
+      {!cambio && !resultado && (
         <p className="text-xs text-muted-foreground mt-3">
-          Modifica el alias para verificar disponibilidad.
+          Modificá el alias para verificar su disponibilidad.
         </p>
       )}
     </section>

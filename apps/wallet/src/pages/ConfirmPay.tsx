@@ -51,7 +51,7 @@ const ConfirmPay = () => {
           recipient: {
             name: transferData.recipientName?.trim() || transferData.recipient,
             cuit: transferData.recipient,
-            type: /^d{22}$/.test(transferData.recipient.trim())
+            type: /^\d{22}$/.test(transferData.recipient.trim())
               ? transferData.recipient.trim().startsWith("000") ? "CVU" : "CBU"
               : "Alias",
           },
@@ -73,15 +73,13 @@ const ConfirmPay = () => {
     }
   };
 
-  // ⚠️ PENDIENTE DE SEGURIDAD: el OTP todavía no es real. El código está
-  // fijo y no se envía por ningún canal, porque el envío de emails está
-  // bloqueado hasta configurar Resend (ver supabase/README.md). La tabla
-  // email_otps ya existe en el esquema. NO puede salir a producción así:
-  // hoy este paso no agrega ninguna verificación.
+  // El código lo genera y lo valida la base (migración 00035). Mientras
+  // no haya SMTP configurado, `otp.sinCanal` viene en true y la pantalla
+  // lo dice en vez de pedir un código que nadie va a recibir.
   const otp = useOtpVerification({
     maxAttempts: 3,
     countdownSeconds: 120,
-    correctCode: "123456",
+    purpose: "transfer",
     onSuccess: () => {
       void handleTransfer();
     },
@@ -230,10 +228,26 @@ const ConfirmPay = () => {
               Verificación de Seguridad
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-center">
-              Por seguridad, ingresa el código de 6 dígitos
+              {otp.sinCanal
+                ? "La verificación por código todavía no está disponible"
+                : "Por seguridad, ingresá el código de 6 dígitos que te enviamos"}
             </DialogDescription>
           </DialogHeader>
 
+          {otp.sinCanal && (
+            // Honestidad de producto: sin canal de envío no hay segundo
+            // factor. Se dice, en vez de simular uno que no protege.
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-sm text-amber-900">
+              <p className="font-semibold">Verificación no disponible</p>
+              <p className="mt-0.5">
+                Todavía no hay un canal de correo configurado, así que no podemos enviarte el
+                código. Podés continuar con la operación, pero este paso no está verificando
+                nada.
+              </p>
+            </div>
+          )}
+
+          {!otp.sinCanal && (
           <div className="flex flex-col items-center gap-4 py-6">
             {/* Timer and attempts display */}
             <div className="flex items-center justify-between w-full px-2">
@@ -305,6 +319,7 @@ const ConfirmPay = () => {
               )}
             </button>
           </div>
+          )}
 
           <div className="flex gap-3">
             <Button
@@ -316,8 +331,8 @@ const ConfirmPay = () => {
               Cancelar
             </Button>
             <Button
-              onClick={otp.verify}
-              disabled={otp.isVerifyDisabled}
+              onClick={otp.sinCanal ? () => void handleTransfer() : otp.verify}
+              disabled={otp.sinCanal ? false : otp.isVerifyDisabled}
               className="flex-1 h-12 bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl gap-2"
             >
               {otp.isVerifying ? (
@@ -325,6 +340,8 @@ const ConfirmPay = () => {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Verificando...
                 </>
+              ) : otp.sinCanal ? (
+                "Continuar sin verificar"
               ) : (
                 "Verificar"
               )}

@@ -20,13 +20,15 @@ const Profile = () => {
   
   // State for editable fields - initialized from user context
   const [identityFields, setIdentityFields] = useState([
-    { label: "DNI", value: user?.dni || "XX.XXX.XXX", locked: true },
-    { label: "CUIT", value: user?.cuit || "20-12345678-9", locked: true },
+    // Sin dato se muestra un guion: un DNI o CUIT de ejemplo se lee como
+    // si fuera el del usuario.
+    { label: "DNI", value: user?.dni || "—", locked: true },
+    { label: "CUIT", value: user?.cuit || "—", locked: true },
   ]);
   
   const [contactFields, setContactFields] = useState([
-    { label: "Email", value: user?.email || "usuario@tecnomind.com", editable: true },
-    { label: "Móvil", value: user?.phone || "+54 9 11 1234 5678", editable: true },
+    { label: "Email", value: user?.email || "—", editable: true },
+    { label: "Móvil", value: user?.phone || "—", editable: true },
   ]);
 
   // Track if there are unsaved changes
@@ -104,7 +106,8 @@ const Profile = () => {
         <OperationalLimits />
 
         {/* Alias Management - Mobile Only */}
-        <AliasManagement userCuit={user?.cuit.replace(/-/g, "") || "20123456789"} />
+        {/* El alias sale de la cuenta, no se arma con el CUIT. */}
+        <AliasManagement />
 
         {/* Identity Card */}
         <ProfileInfoCard 

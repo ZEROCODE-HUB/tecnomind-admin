@@ -386,3 +386,64 @@ El detalle extendido de usuario (`components/user-modal.tsx`, 2573 líneas)
 sigue con datos de demostración: depende de tablas de comisiones, impuestos,
 alertas y módulos que no existen. El listado y la ficha resumida sí son
 reales.
+
+## Fase 5 — Cerrando los simulados de la app (migraciones 00034–00035)
+
+| Archivo | Contenido |
+|---|---|
+| `00034_disponibilidad_de_alias` | `alias_disponible()`: valida formato y unicidad sin abrir las cuentas ajenas |
+| `00035_otp_real` | OTP de verdad: generación, hash, expiración, intentos y `app_config` |
+
+### El OTP ya no es un decorado
+
+La confirmación de pago comparaba el código contra la constante `"123456"`
+**en el navegador**. Cualquiera que llegara a esa pantalla confirmaba la
+operación, y el paso daba una falsa sensación de seguridad — peor que no
+tenerlo, porque el usuario cree que está protegido.
+
+Ahora el circuito completo vive en la base:
+
+- código de 6 dígitos desde `gen_random_bytes` (no `random()`, que no es
+  criptográfico);
+- se guarda **solo el hash** (bcrypt); el cliente no puede leer `email_otps`
+  (verificado: `403 permission denied`);
+- expira a los 10 minutos, 3 intentos, 5 reenvíos por hora;
+- **el intento se cuenta siempre**, acierte o no: si solo se contaran los
+  fallos, recorrer el millón de códigos seguiría siendo posible;
+- pedir un código nuevo invalida los anteriores, para que no convivan varios
+  vigentes;
+- un código se usa una sola vez.
+
+Lo único que falta es la **entrega**, que necesita Resend. Mientras tanto
+`otp_solicitar()` devuelve `motivo = 'sin_canal'` y la app lo dice en pantalla
+en vez de pedir un código que nadie va a recibir. Para habilitarlo:
+
+```sql
+update public.app_config set value = 'true' where key = 'otp_email_enabled';
+```
+
+Comprobado extremo a extremo con el interruptor en `true`: código encolado,
+verificado contra el hash, transferencia ejecutada y comprobante con número de
+referencia real. Y con el interruptor en `false`, la pantalla avisa.
+
+### Alias
+
+Se podía "verificar" un alias, pero la respuesta era un `setTimeout` con
+`Math.random()`, y "Confirmar" no guardaba nada. El cambio ahora es real; la
+base ya se encargaba del resto por trigger: registra el historial en
+`account_alias_history` y **resincroniza el `qr_data` de la cuenta**. Verificado:
+tras cambiar el alias, `search_account_for_transfer` resuelve el nuevo y el QR
+lo refleja.
+
+### Otros datos inventados que se eliminaron
+
+- **`ShareCVU` mostraba un CVU, un alias y un titular fijos**, y un "QR" que era
+  un dibujo SVG sin codificar nada. Un cliente que compartiera esos datos habría
+  estado pidiendo que le pagaran a una cuenta inexistente. Ahora salen de la
+  cuenta y el QR se genera de verdad desde `qr_codes.qr_data`.
+- **`SuccessPay` fabricaba un comprobante** ("Café Buenos Aires", `MAG-88293-X`)
+  si se entraba sin datos de la operación.
+- **`Profile` mostraba un DNI y un CUIT de ejemplo** cuando el usuario no los
+  tenía cargados.
+- Una regex rota (`/^d{22}$/` en vez de `/^\d{22}$/`) hacía que todo destino se
+  etiquetara como "Alias" en el comprobante.
