@@ -18,6 +18,7 @@ import Logo from "@/components/Logo";
 import { formatCurrencyAR, getInitials, formatTime } from "@/lib/formatters";
 import { useOtpVerification } from "@/hooks/useOtpVerification";
 import { TransferState } from "@/types";
+import { useTransferir } from "@/hooks/useTransfer";
 
 const ConfirmPay = () => {
   const navigate = useNavigate();
@@ -26,42 +27,57 @@ const ConfirmPay = () => {
   const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const transferData = location.state as TransferState | null;
+  const transferir = useTransferir();
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
+    if (!transferData) return;
+
     setIsProcessing(true);
     setShowSecurityModal(false);
-    
-    setTimeout(() => {
-      const recipient = transferData?.recipient || "";
-      const isErrorRecipient = recipient.toLowerCase().includes("ines");
-      
-      if (isErrorRecipient) {
-        navigate("/error-pay", {
-          state: {
-            amount: transferData?.amount.toString(),
-            recipient,
-            errorCode: "ERR-DEST-503",
-          },
-        });
-      } else {
-        navigate("/success-pay", {
-          state: {
-            amount: transferData?.amount,
-            recipient,
-            concept: transferData?.concept,
-            transactionId: `MAG-${Math.floor(10000 + Math.random() * 90000)}-X`,
-            date: new Date(),
-          },
-        });
-      }
-    }, 2000);
+
+    try {
+      // process_transfer valida propiedad de la cuenta, saldo, estado y los
+      // tres límites de forma atómica. No se duplica nada de eso acá.
+      const resultado = await transferir.mutateAsync({
+        destinatario: transferData.recipient,
+        monto: transferData.amount,
+        concepto: transferData.concept,
+      });
+
+      navigate("/success-pay", {
+        state: {
+          amount: transferData.amount,
+          recipient: transferData.recipient,
+          concept: transferData.concept,
+          transactionId: resultado?.reference_number ?? resultado?.transaction_id ?? "",
+          date: new Date(),
+        },
+      });
+    } catch (error) {
+      navigate("/error-pay", {
+        state: {
+          amount: String(transferData.amount),
+          recipient: transferData.recipient,
+          errorCode: error instanceof Error ? error.message : "No pudimos completar la transferencia.",
+        },
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
+  // ⚠️ PENDIENTE DE SEGURIDAD: el OTP todavía no es real. El código está
+  // fijo y no se envía por ningún canal, porque el envío de emails está
+  // bloqueado hasta configurar Resend (ver supabase/README.md). La tabla
+  // email_otps ya existe en el esquema. NO puede salir a producción así:
+  // hoy este paso no agrega ninguna verificación.
   const otp = useOtpVerification({
     maxAttempts: 3,
     countdownSeconds: 120,
     correctCode: "123456",
-    onSuccess: handleTransfer,
+    onSuccess: () => {
+      void handleTransfer();
+    },
   });
 
   const handleOpenSecurityModal = () => {

@@ -85,7 +85,7 @@ Cada `vercel.json` construye desde la raíz del monorepo para respetar los works
 - [x] **Fase 0** — Andamiaje del monorepo; las tres apps compilan y corren en paralelo
 - [x] **Fase 1** — Esquema de Supabase versionado y aplicado
 - [x] **Fase 2** — Roles, permisos y auditoría del backoffice + login del admin
-- [~] **Fase 3** — La app: registro, login y guard de rutas contra datos reales
+- [~] **Fase 3** — La app contra datos reales: auth, dashboard, movimientos, transferencias y estadísticas
 - [ ] **Fase 4** — Admin contra datos reales, sección por sección
 - [ ] **Fase 5** — Acceso web (`webapp`) contra datos reales
 - [ ] **Fase 6** — Derivar el producto OTC

@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { Receipt } from "lucide-react";
+import { Receipt, Loader2 } from "lucide-react";
 import TransactionItem from "./TransactionItem";
-import { dashboardTransactions } from "@/data/mockTransactions";
 import EmptyState from "@/components/ui/empty-state";
+import { useMovimientosRecientes } from "@/hooks/useTransactions";
 
 const TransactionsList = () => {
   const navigate = useNavigate();
+  const { data: movimientos, isLoading } = useMovimientosRecientes();
+  const dashboardTransactions = movimientos ?? [];
 
   return (
     <section className="px-6 py-2 mt-2 flex-1">
@@ -18,7 +20,11 @@ const TransactionsList = () => {
           Ver todo
         </button>
       </div>
-      {dashboardTransactions.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : dashboardTransactions.length > 0 ? (
         <div className="flex flex-col gap-3">
           {dashboardTransactions.map((transaction) => (
             <TransactionItem

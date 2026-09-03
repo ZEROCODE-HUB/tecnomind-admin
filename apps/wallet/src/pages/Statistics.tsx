@@ -8,7 +8,8 @@ import CustomDateRangePicker from "@/components/statistics/CustomDateRangePicker
 import SummaryCards from "@/components/statistics/SummaryCards";
 import BalanceChart from "@/components/statistics/BalanceChart";
 import { useAuth } from "@/contexts/AuthContext";
-import { generateChartData, generateSummaryData } from "@/data/statisticsData";
+import { useEstadisticas } from "@/hooks/useStatistics";
+import { useSaldo } from "@/hooks/useAccount";
 
 const Statistics = () => {
   const { user } = useAuth();
@@ -37,19 +38,22 @@ const Statistics = () => {
     }
   }, [selectedRange, appliedCustomRange]);
 
-  const chartData = useMemo(() => {
-    return generateChartData(dateRange.start, dateRange.end);
-  }, [dateRange]);
+  const { data: estadisticas, isLoading } = useEstadisticas(dateRange.start, dateRange.end);
+  const { saldo } = useSaldo();
 
-  const summaryData = useMemo(() => {
-    return generateSummaryData(
-      selectedRange, 
-      appliedCustomRange?.start, 
-      appliedCustomRange?.end
-    );
-  }, [selectedRange, appliedCustomRange]);
+  const chartData = estadisticas?.chartData ?? [];
+  const summaryData = estadisticas?.resumen ?? {
+    income: 0,
+    expenses: 0,
+    incomeChange: 0,
+    expensesChange: 0,
+    balance: 0,
+    balanceChange: 0,
+  };
 
-  const currentBalance = chartData[chartData.length - 1]?.value || 0;
+  // El saldo actual es el de la cuenta, no el último punto del gráfico: el
+  // gráfico se reconstruye hacia atrás y su último punto es una derivación.
+  const currentBalance = saldo.available;
 
   const handleRangeChange = (rangeId: string) => {
     setSelectedRange(rangeId);

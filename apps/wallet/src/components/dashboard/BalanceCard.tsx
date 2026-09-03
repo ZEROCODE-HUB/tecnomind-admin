@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { mockBalance } from "@/data/mockBalance";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { formatBalance } from "@/lib/formatters";
+import { useSaldo } from "@/hooks/useAccount";
 
 const BalanceCard = () => {
   const [showBalance, setShowBalance] = useState(true);
+  const { saldo, isLoading } = useSaldo();
 
-  const balance = formatBalance(mockBalance.available);
+  const balance = formatBalance(saldo.available);
 
   // Ajusta el tamaño del texto según la cantidad de caracteres
   const balanceFontSize = useMemo(() => {
@@ -27,7 +28,7 @@ const BalanceCard = () => {
       
       <div className="flex items-center gap-3 mb-1">
         <h2 className={`${balanceFontSize} font-bold tracking-tight text-foreground whitespace-nowrap`}>
-          {showBalance ? balance : "$ ••••••••"}
+          {isLoading ? "..." : showBalance ? balance : "$ ••••••••"}
         </h2>
         <button
           onClick={() => setShowBalance(!showBalance)}

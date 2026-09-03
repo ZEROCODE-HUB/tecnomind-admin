@@ -184,3 +184,62 @@ Hay que elegir una de estas dos, desde el dashboard de Supabase:
 Hasta que se resuelva, el registro público está limitado a 2 altas por hora.
 El token de acceso disponible no tiene privilegios para cambiar esta
 configuración: hay que hacerlo desde el dashboard.
+
+---
+
+## Fase 3 — Pantallas contra datos reales (migración 00022)
+
+### 🔴 Bloqueador encontrado al probar la primera transferencia
+
+```
+TRANSFER_FAILED: relation "pgmq.q_notification_jobs" does not exist
+```
+
+**Ninguna transferencia podía completarse.** La cadena es:
+`process_transfer` marca la transacción como `completed` → el trigger
+`on_transaction_completed_enqueue` → `trigger_enqueue_transaction_notification`
+→ `enqueue_notification` → `pgmq.send('notification_jobs', ...)`.
+
+La cola vive en el schema `pgmq`, no en `public`, así que quedó fuera de la
+extracción inicial del backup — el mismo problema que el trigger de
+`auth.users`. Creada en `00022`, de forma idempotente.
+
+Como la transacción entera se revertía, no hubo saldos inconsistentes: la
+operación simplemente no se podía hacer.
+
+### ⚠️ El saldo es un valor DERIVADO: no tocar `accounts.balance` a mano
+
+`process_transfer` no actualiza el saldo de forma incremental: llama a
+`reconcile_account_balance()`, que lo **recalcula desde cero** sumando las
+transacciones de la cuenta.
+
+Consecuencia práctica: un `update accounts set balance = X` queda inconsistente
+y hace fallar la **siguiente** operación con
+`accounts_balance_check` (el saldo recalculado da negativo). Para acreditar
+saldo hay que insertar una transacción real —un depósito— y reconciliar.
+Lo descubrí acreditando saldo a mano en una prueba.
+
+### Hooks de datos de la app
+
+`apps/wallet/src/hooks/`: `useAccount` (cuenta, saldo con variación del día,
+límites), `useTransactions` (recientes y listado con filtros), `useTransfer`
+(búsqueda de destinatario y `process_transfer`), `useStatistics`.
+
+Los tres archivos de datos mock (`mockBalance`, `mockTransactions`,
+`statisticsData`) fueron **eliminados**. Detalles que corregí al conectar:
+
+- `Movements` filtraba fechas con una función que **hardcodeaba el mes de
+  octubre**, porque los mocks eran de octubre.
+- `Statistics` generaba el gráfico con una onda de seno y coseno. Ahora agrega
+  los movimientos reales por hora, día o semana según el rango, y la variación
+  porcentual se compara contra el período anterior de igual duración.
+- `Transfer` validaba contra una constante `AVAILABLE_BALANCE` y **no resolvía
+  el destinatario**: se confirmaba a ciegas. Ahora lo busca antes de confirmar
+  y muestra el titular.
+
+### ⚠️ Pendiente de seguridad: el OTP de transferencia no es real
+
+`ConfirmPay` pide un código de 6 dígitos, pero está **fijo en `123456`** y no se
+envía por ningún canal. Hoy ese paso **no verifica nada**. La tabla `email_otps`
+ya existe en el esquema; falta implementarlo cuando esté Resend. Marcado con un
+comentario en el código. **No puede salir a producción así.**

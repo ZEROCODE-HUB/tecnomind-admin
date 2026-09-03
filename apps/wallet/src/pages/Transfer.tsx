@@ -8,8 +8,10 @@ import AmountInput from "@/components/transfer/AmountInput";
 import ConceptInput from "@/components/transfer/ConceptInput";
 import TransferButton from "@/components/transfer/TransferButton";
 import { useAuth } from "@/contexts/AuthContext";
-import { AVAILABLE_BALANCE } from "@/data/mockBalance";
-import { parseAmount } from "@/lib/formatters";
+import { parseAmount, formatCurrencyARS } from "@/lib/formatters";
+import { useSaldo, useLimites } from "@/hooks/useAccount";
+import { buscarDestinatario } from "@/hooks/useTransfer";
+import { useToast } from "@/hooks/use-toast";
 
 const validateRecipient = (value: string): boolean => {
   const trimmed = value.trim();
@@ -22,22 +24,62 @@ const Transfer = () => {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("0");
   const [concept, setConcept] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const { toast } = useToast();
+  const { saldo } = useSaldo();
+  const { data: limites } = useLimites();
 
+  const disponible = saldo.available;
   const isRecipientValid = validateRecipient(recipient);
   const numericAmount = parseAmount(amount);
-  const isAmountValid = numericAmount > 0 && numericAmount <= AVAILABLE_BALANCE;
-  const canTransfer = isRecipientValid && isAmountValid;
+  const isAmountValid = numericAmount > 0 && numericAmount <= disponible;
+  const canTransfer = isRecipientValid && isAmountValid && !isChecking;
 
-  const handleTransfer = () => {
+  // El destinatario se resuelve ANTES de confirmar: la pantalla siguiente
+  // muestra a quién se le está por transferir, y equivocarse de alias sin
+  // ver el nombre es la forma más fácil de mandar plata a un desconocido.
+  const handleTransfer = async () => {
     if (!canTransfer) return;
 
-    navigate("/confirm-pay", {
-      state: {
-        recipient,
-        amount: numericAmount,
-        concept,
-      },
-    });
+    if (limites && numericAmount > limites.porOperacion && limites.porOperacion > 0) {
+      toast({
+        variant: "destructive",
+        title: "Supera tu límite por operación",
+        description: `El máximo por transferencia es ${formatCurrencyARS(limites.porOperacion)}.`,
+      });
+      return;
+    }
+
+    setIsChecking(true);
+    try {
+      const destino = await buscarDestinatario(recipient);
+      if (!destino) {
+        toast({
+          variant: "destructive",
+          title: "No encontramos esa cuenta",
+          description: "Revisá el alias, CBU o CVU e intentá de nuevo.",
+        });
+        return;
+      }
+
+      navigate("/confirm-pay", {
+        state: {
+          recipient,
+          recipientName: destino.nombre,
+          isExternal: destino.esExterna,
+          amount: numericAmount,
+          concept,
+        },
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "No pudimos validar la cuenta",
+        description: "Intentá de nuevo en unos segundos.",
+      });
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   return (
@@ -59,7 +101,7 @@ const Transfer = () => {
         <AmountInput
           value={amount}
           onChange={setAmount}
-          availableBalance={AVAILABLE_BALANCE}
+          availableBalance={disponible}
         />
 
         <ConceptInput value={concept} onChange={setConcept} />

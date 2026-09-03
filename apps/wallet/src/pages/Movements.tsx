@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { DateRange } from "react-day-picker";
-import { isWithinInterval } from "date-fns";
-import { Eye, EyeOff, Receipt } from "lucide-react";
+import { Eye, EyeOff, Receipt, Loader2 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import SearchBar from "@/components/movements/SearchBar";
@@ -10,24 +9,10 @@ import FilterChips, { FilterType } from "@/components/movements/FilterChips";
 import TransactionGroup, { Transaction } from "@/components/movements/TransactionGroup";
 import TransactionReceiptModal, { TransactionDetails } from "@/components/movements/TransactionReceiptModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { allTransactions, dateOrder } from "@/data/mockTransactions";
 import { formatBalance } from "@/lib/formatters";
-import { mockBalance } from "@/data/mockBalance";
+import { useSaldo } from "@/hooks/useAccount";
+import { useMovimientos } from "@/hooks/useTransactions";
 import EmptyState from "@/components/ui/empty-state";
-
-// Helper to parse dateGroup to actual Date for filtering
-const parseDateGroup = (dateGroup: string): Date => {
-  const currentYear = new Date().getFullYear();
-  if (dateGroup.includes("Hoy")) {
-    return new Date(currentYear, 9, 24);
-  } else if (dateGroup.includes("Ayer")) {
-    return new Date(currentYear, 9, 23);
-  } else {
-    const parts = dateGroup.split(" ");
-    const day = parseInt(parts[0]);
-    return new Date(currentYear, 9, day);
-  }
-};
 
 const Movements = () => {
   const location = useLocation();
@@ -38,6 +23,17 @@ const Movements = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetails | null>(null);
 
+  const { saldo } = useSaldo();
+
+  // El filtrado por tipo y por fecha lo hace el servidor; la búsqueda por
+  // texto va en el hook, que cruza contraparte, concepto y referencia.
+  const { data: movimientos, isLoading } = useMovimientos({
+    tipo: activeFilter === "ingresos" ? "income" : activeFilter === "egresos" ? "expense" : "all",
+    desde: activeFilter === "fechas" ? dateRange?.from : undefined,
+    hasta: activeFilter === "fechas" ? dateRange?.to ?? dateRange?.from : undefined,
+    busqueda: searchQuery,
+  });
+
   // Clear filters when leaving the page
   useEffect(() => {
     return () => {
@@ -46,54 +42,23 @@ const Movements = () => {
     };
   }, [location.pathname]);
 
-  const filteredTransactions = useMemo(() => {
-    let filtered = allTransactions;
+  const filteredTransactions = useMemo(() => movimientos ?? [], [movimientos]);
 
-    // Filter by type
-    if (activeFilter === "ingresos") {
-      filtered = filtered.filter((t) => t.type === "income");
-    } else if (activeFilter === "egresos") {
-      filtered = filtered.filter((t) => t.type === "expense");
-    }
-
-    // Filter by date range
-    if (activeFilter === "fechas" && dateRange?.from) {
-      filtered = filtered.filter((t) => {
-        const transactionDate = parseDateGroup(t.dateGroup);
-        if (dateRange.to) {
-          return isWithinInterval(transactionDate, {
-            start: dateRange.from!,
-            end: dateRange.to,
-          });
-        }
-        return transactionDate.toDateString() === dateRange.from!.toDateString();
-      });
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.name.toLowerCase().includes(query) ||
-          t.category.toLowerCase().includes(query) ||
-          t.amount.toLowerCase().includes(query) ||
-          t.dateGroup.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [activeFilter, searchQuery, dateRange]);
-
-  const groupedTransactions = useMemo(() => {
+  // Los movimientos vienen ordenados por fecha descendente, así que el
+  // orden en que aparecen los grupos ya es el correcto: no hace falta una
+  // lista fija de fechas como la que usaban los datos mock.
+  const { groupedTransactions, dateOrder } = useMemo(() => {
     const groups: Record<string, Transaction[]> = {};
-    filteredTransactions.forEach((t) => {
-      if (!groups[t.dateGroup]) {
-        groups[t.dateGroup] = [];
+    const orden: string[] = [];
+    for (const t of filteredTransactions) {
+      const grupo = t.dateGroup ?? "";
+      if (!groups[grupo]) {
+        groups[grupo] = [];
+        orden.push(grupo);
       }
-      groups[t.dateGroup].push(t);
-    });
-    return groups;
+      groups[grupo].push(t);
+    }
+    return { groupedTransactions: groups, dateOrder: orden };
   }, [filteredTransactions]);
 
   const handleTransactionClick = (transaction: Transaction & { dateGroup: string }) => {
@@ -115,7 +80,7 @@ const Movements = () => {
           <div>
             <p className="text-sm text-muted-foreground mb-1">Saldo disponible</p>
             <p className="text-2xl font-bold text-foreground">
-              {showBalance ? formatBalance(mockBalance.available) : "••••••"}
+              {showBalance ? formatBalance(saldo.available) : "••••••"}
             </p>
           </div>
           <button 
@@ -157,7 +122,13 @@ const Movements = () => {
           );
         })}
 
-        {filteredTransactions.length === 0 && (
+        {isLoading && (
+          <div className="flex justify-center py-12">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {!isLoading && filteredTransactions.length === 0 && (
           <EmptyState
             icon={Receipt}
             title="Sin movimientos"
@@ -169,7 +140,7 @@ const Movements = () => {
           />
         )}
 
-        {filteredTransactions.length > 0 && (
+        {!isLoading && filteredTransactions.length > 0 && (
           <div className="py-4 flex justify-center">
             <span className="text-muted-foreground text-2xl font-black opacity-20">
               . . .
