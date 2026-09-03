@@ -7,12 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=@tecnomind/webapp",
+    "dev": "npm run dev --workspace=@tecnomind/wallet",
     "dev:admin": "npm run dev --workspace=@tecnomind/admin",
-    "dev:all": "npm run dev --workspace=@tecnomind/webapp & npm run dev --workspace=@tecnomind/admin",
+    "dev:webapp": "npm run dev --workspace=@tecnomind/webapp",
+    "dev:all": "npm run dev --workspace=@tecnomind/wallet & npm run dev --workspace=@tecnomind/admin",
     "build": "npm run build --workspaces --if-present",
-    "build:webapp": "npm run build --workspace=@tecnomind/webapp",
+    "build:wallet": "npm run build --workspace=@tecnomind/wallet",
     "build:admin": "npm run build --workspace=@tecnomind/admin",
+    "build:webapp": "npm run build --workspace=@tecnomind/webapp",
     "lint": "npm run lint --workspaces --if-present"
   },
   "engines": {

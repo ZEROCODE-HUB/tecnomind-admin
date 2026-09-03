@@ -10,17 +10,27 @@ con su **propio proyecto Supabase**.
 
 ```
 apps/
-  webapp/    App de usuario final    — Vite + React 18 + react-router + Tailwind v3
-  admin/     Backoffice              — Vite + React 19 + TanStack Router + Tailwind v4
+  wallet/    La app (producto principal)  — React 18 + react-router + Tailwind v3  :8082
+  admin/     Backoffice                   — React 19 + TanStack Router + Tailwind v4  :8081
+  webapp/    Acceso web (complemento)     — React 18 + react-router + Tailwind v3  :8080
 packages/
-  core/      Código compartido (tipos de DB, entidades, cliente Supabase)
+  core/      Código compartido (tipos de DB, cliente Supabase, permisos)
 supabase/
-  migrations/  Esquema versionado (vacío hasta la Fase 1)
+  migrations/  Esquema versionado (20 migraciones, aplicadas)
 docs/        Documentación funcional y planes de test
 IDENTIDAD/   Manual de marca y design tokens
 ```
 
-Las dos apps mantienen **stacks distintos a propósito**: portar el admin al stack
+### Las tres apps
+
+- **`wallet`** — la app, el producto principal. Mobile-first: registro por pasos
+  con PIN y biometría, escaneo de QR, dispositivos vinculados, configuración de API.
+- **`admin`** — el backoffice para operadores.
+- **`webapp`** — complemento para navegador, reducido (sin registro, sin QR, sin
+  dispositivos). Se entra con la contraseña de acceso web que el usuario habilita
+  *desde la app*: por eso el esquema tiene `web_access_enabled` y `web_password_hash`.
+
+El admin mantiene un **stack distinto a propósito**: portar el admin al stack
 de la webapp implicaría reescribir su ruteo y su CSS, degradando un diseño ya
 aprobado. Conviven sin problema bajo npm workspaces.
 
@@ -40,11 +50,12 @@ cp .env.example .env   # completar con las credenciales de Supabase
 
 | Comando | Qué hace |
 |---|---|
-| `npm run dev` | Webapp en http://localhost:8080 |
+| `npm run dev` | La app en http://localhost:8082 |
 | `npm run dev:admin` | Admin en http://localhost:8081 |
-| `npm run dev:all` | Ambas a la vez |
+| `npm run dev:webapp` | Acceso web en http://localhost:8080 |
+| `npm run dev:all` | App y admin a la vez |
 | `npm run build` | Compila todos los workspaces |
-| `npm run build:webapp` / `npm run build:admin` | Compila una sola |
+| `npm run build:wallet` / `:admin` / `:webapp` | Compila una sola |
 | `npm run lint` | Lint de todos los workspaces |
 
 ## Variables de entorno
@@ -63,20 +74,22 @@ Vercel, **un proyecto por app**, ambos apuntando a este repo:
 
 | App | Root Directory | Dominio |
 |---|---|---|
-| webapp | `apps/webapp` | a definir |
+| wallet | `apps/wallet` | a definir |
 | admin | `apps/admin` | a definir |
+| webapp | `apps/webapp` | a definir |
 
 Cada `vercel.json` construye desde la raíz del monorepo para respetar los workspaces.
 
 ## Estado
 
-- [x] **Fase 0** — Andamiaje del monorepo, ambas apps compilando y corriendo en paralelo
-- [x] **Fase 1** — Esquema de Supabase versionado y aplicado (13 migraciones)
+- [x] **Fase 0** — Andamiaje del monorepo; las tres apps compilan y corren en paralelo
+- [x] **Fase 1** — Esquema de Supabase versionado y aplicado
 - [x] **Fase 2** — Roles, permisos y auditoría del backoffice + login del admin
-- [ ] **Fase 3** — Webapp contra datos reales
+- [ ] **Fase 3** — La app (`wallet`) contra datos reales
 - [ ] **Fase 4** — Admin contra datos reales, sección por sección
-- [ ] **Fase 5** — Derivar el producto OTC
-- [ ] **Fase 6** — Despliegue y QA end-to-end
+- [ ] **Fase 5** — Acceso web (`webapp`) contra datos reales
+- [ ] **Fase 6** — Derivar el producto OTC
+- [ ] **Fase 7** — Despliegue y QA end-to-end
 
-El admin funciona hoy con **datos mock** (`src/stores/backoffice-store.ts` + `demo-mode`);
+El admin y la app funcionan hoy mayormente con **datos mock** (`src/stores/backoffice-store.ts` + `demo-mode`);
 la Fase 4 los reemplaza por Supabase sección por sección.
