@@ -1,61 +1,44 @@
-# TecnoMind — Fiat
+# TecnoMind — Fiat (base de datos + backoffice)
 
-> ## ⚠️ La app de usuarios NO es la web de este repo
+Producto **fiat** (sin cripto) de TecnoMind. Este repo contiene el **esquema de
+Supabase** (la base compartida de todo el producto) y el **backoffice**.
+
+> ## La app de usuarios vive en otro repo
 >
-> El producto es la **app React Native** que vive en
-> `NoCodeHero83/magnate-virtual-wallet`, rama **`master`**. Ese repo tiene dos
-> ramas con dos aplicaciones distintas y `main` — la rama por defecto — es una
-> web que **no va**.
+> El producto de cara al usuario es la **app React Native (Proxpera)**, no una web.
+> Está tomada de `magnate-virtual-wallet` rama `master` y se trabaja aparte.
 >
-> `apps/wallet` (la web de usuarios) queda **en pausa**. El detalle de qué se
-> hizo, qué sirve y cómo retomarlo:
+> La web de usuarios que estuvo acá (`apps/wallet` y `apps/webapp`) se **eliminó**:
+> era la app equivocada. Lo que se hizo con ella, y qué de eso sigue sirviendo (todo
+> vive en la base, no en la web), quedó documentado en
 > [docs/web-de-usuarios-estado.md](docs/web-de-usuarios-estado.md).
->
-> **Lo que sí sigue vigente de este repo:** el esquema de Supabase
-> (`supabase/migrations`, 35 migraciones, incluidas las correcciones de
-> seguridad) y el backoffice (`apps/admin`). Nada de ese trabajo se pierde: la
-> app nativa consume la misma base.
-
-Monorepo del producto **fiat** (sin cripto) de TecnoMind. Derivado de Magnate,
-con el backoffice basado en el diseño de `ZEROCODE-HUB/tecnomind-admin`.
 
 ## Estructura
 
 ```
 apps/
-  wallet/    La app (producto principal)  — React 18 + react-router + Tailwind v3  :8082
-  admin/     Backoffice                   — React 19 + TanStack Router + Tailwind v4  :8081
-  webapp/    Acceso web (complemento)     — React 18 + react-router + Tailwind v3  :8080
+  admin/     Backoffice — React 19 + TanStack Router + Tailwind v4   :8081
 packages/
-  core/      Código compartido (tipos de DB, cliente Supabase, permisos)
+  core/      Código compartido del admin (tipos de DB, cliente Supabase, permisos)
 supabase/
-  migrations/  Esquema versionado (20 migraciones, aplicadas)
-docs/        Documentación funcional y planes de test
+  migrations/  Esquema versionado (35 migraciones, aplicadas)
+  functions/   Edge Functions (zapsign-proxy: KYC del lado servidor)
+docs/        Documentación funcional y estado
 IDENTIDAD/   Manual de marca y design tokens
 ```
 
-### Las tres apps
-
-- **`wallet`** — la app, el producto principal. Mobile-first: registro por pasos
-  con PIN y biometría, escaneo de QR, dispositivos vinculados, configuración de API.
-- **`admin`** — el backoffice para operadores.
-- **`webapp`** — complemento para navegador, reducido (sin registro, sin QR, sin
-  dispositivos). Se entra con la contraseña de acceso web que el usuario habilita
-  *desde la app*: por eso el esquema tiene `web_access_enabled` y `web_password_hash`.
-
-El admin mantiene un **stack distinto a propósito**: portar el admin al stack
-de la webapp implicaría reescribir su ruteo y su CSS, degradando un diseño ya
-aprobado. Conviven sin problema bajo npm workspaces.
+Una **sola base de datos** para el producto. Este repo la versiona en
+`supabase/migrations`; el backoffice y la app nativa la consumen.
 
 ## Requisitos
 
 - Node.js >= 22
-- npm 11+ (se usa **npm workspaces**, no bun ni pnpm)
+- npm 11+ (npm workspaces)
 
 ## Puesta en marcha
 
 ```bash
-npm install            # instala todo el monorepo desde la raíz
+npm install            # instala el monorepo desde la raíz
 cp .env.example .env   # completar con las credenciales de Supabase
 ```
 
@@ -63,46 +46,29 @@ cp .env.example .env   # completar con las credenciales de Supabase
 
 | Comando | Qué hace |
 |---|---|
-| `npm run dev` | La app en http://localhost:8082 |
-| `npm run dev:admin` | Admin en http://localhost:8081 |
-| `npm run dev:webapp` | Acceso web en http://localhost:8080 |
-| `npm run dev:all` | App y admin a la vez |
-| `npm run build` | Compila todos los workspaces |
-| `npm run build:wallet` / `:admin` / `:webapp` | Compila una sola |
-| `npm run lint` | Lint de todos los workspaces |
+| `npm run dev` | Admin en http://localhost:8081 |
+| `npm run build` | Compila el admin |
+| `npm run lint` | Lint de los workspaces |
 
 ## Variables de entorno
 
-Se configuran en `.env` (nunca versionado) y en Vercel por proyecto:
+En `.env` (nunca versionado) y en Vercel:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-> La `service_role` key **no va nunca en el frontend**: saltea todas las
-> políticas RLS. Solo del lado de Supabase o de un servidor.
-
-## Despliegue
-
-Vercel, **un proyecto por app**, ambos apuntando a este repo:
-
-| App | Root Directory | Dominio |
-|---|---|---|
-| wallet | `apps/wallet` | a definir |
-| admin | `apps/admin` | a definir |
-| webapp | `apps/webapp` | a definir |
-
-Cada `vercel.json` construye desde la raíz del monorepo para respetar los workspaces.
+> La `service_role` key **no va nunca en el frontend**: saltea todas las políticas
+> RLS. Solo del lado de Supabase o de un servidor.
 
 ## Estado
 
-- [x] **Fase 0** — Andamiaje del monorepo; las tres apps compilan y corren en paralelo
-- [x] **Fase 1** — Esquema de Supabase versionado y aplicado
-- [x] **Fase 2** — Roles, permisos y auditoría del backoffice + login del admin
-- [~] **Fase 3** — La app contra datos reales: auth, dashboard, movimientos, transferencias y estadísticas
-- [ ] **Fase 4** — Admin contra datos reales, sección por sección
-- [ ] **Fase 5** — Acceso web (`webapp`) contra datos reales
-- [ ] **Fase 6** — Derivar el producto OTC
-- [ ] **Fase 7** — Despliegue y QA end-to-end
-
-El admin y la app funcionan hoy mayormente con **datos mock** (`src/stores/backoffice-store.ts` + `demo-mode`);
-la Fase 4 los reemplaza por Supabase sección por sección.
+- [x] **Esquema de Supabase** versionado y aplicado (35 migraciones), con las
+  correcciones de seguridad heredadas de Magnate
+- [x] **Backoffice** contra datos reales (verificación, usuarios, movimientos,
+  estadísticas) con roles, permisos y auditoría
+- [x] **Edge Function `zapsign-proxy`** desplegada (KYC del lado servidor)
+- [ ] Reestructuración de repos: mover el backoffice a `tecnomind-admin` y definir
+  dónde viven las migraciones (recomendado: junto al admin, único que opera sobre
+  toda la base). Ver docs.
+- [ ] Derivar el producto OTC
+- [ ] Despliegue y QA end-to-end
