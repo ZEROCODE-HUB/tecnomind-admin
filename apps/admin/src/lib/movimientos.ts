@@ -37,7 +37,7 @@ export function toneMovimiento(estado: EstadoMovimiento): "success" | "warn" | "
 export const GRUPOS = {
   todos: null,
   depositos: ["deposit", "recharge"],
-  retiros: ["transfer_out", "payment"],
+  retiros: ["withdrawal", "transfer_out", "payment"],
   transferencias: ["transfer_in", "transfer_out"],
   comisiones: ["commission"],
   reembolsos: ["refund"],

@@ -43,6 +43,7 @@ import { Route as AdminNotificacionesIndexRouteImport } from './routes/admin.not
 import { Route as AdminOtcTasasRouteImport } from './routes/admin.otc.tasas'
 import { Route as AdminPagosAprobacionRouteImport } from './routes/admin.pagos.aprobacion'
 import { Route as AdminPagosComprobantesRouteImport } from './routes/admin.pagos.comprobantes'
+import { Route as AdminPagosMetodosRouteImport } from './routes/admin.pagos.metodos'
 import { Route as AdminVerificacionIdentidadRouteImport } from './routes/admin.verificacion.identidad'
 import { Route as AdminVerificacionListasRouteImport } from './routes/admin.verificacion.listas'
 import { Route as AdminAdministracionRegistrosIndexRouteImport } from './routes/admin.administracion.registros.index'
@@ -262,6 +263,11 @@ const AdminPagosAprobacionRoute = AdminPagosAprobacionRouteImport.update({
 const AdminPagosComprobantesRoute = AdminPagosComprobantesRouteImport.update({
   id: '/pagos/comprobantes',
   path: '/pagos/comprobantes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPagosMetodosRoute = AdminPagosMetodosRouteImport.update({
+  id: '/pagos/metodos',
+  path: '/pagos/metodos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminVerificacionIdentidadRoute =
@@ -533,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/admin/otc/tasas': typeof AdminOtcTasasRoute
   '/admin/pagos/aprobacion': typeof AdminPagosAprobacionRoute
   '/admin/pagos/comprobantes': typeof AdminPagosComprobantesRoute
+  '/admin/pagos/metodos': typeof AdminPagosMetodosRoute
   '/admin/verificacion/identidad': typeof AdminVerificacionIdentidadRoute
   '/admin/verificacion/listas': typeof AdminVerificacionListasRoute
   '/admin/comercios/': typeof AdminComerciosIndexRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/admin/otc/tasas': typeof AdminOtcTasasRoute
   '/admin/pagos/aprobacion': typeof AdminPagosAprobacionRoute
   '/admin/pagos/comprobantes': typeof AdminPagosComprobantesRoute
+  '/admin/pagos/metodos': typeof AdminPagosMetodosRoute
   '/admin/verificacion/identidad': typeof AdminVerificacionIdentidadRoute
   '/admin/verificacion/listas': typeof AdminVerificacionListasRoute
   '/admin/comercios': typeof AdminComerciosIndexRoute
@@ -672,6 +680,7 @@ export interface FileRoutesById {
   '/admin/otc/tasas': typeof AdminOtcTasasRoute
   '/admin/pagos/aprobacion': typeof AdminPagosAprobacionRoute
   '/admin/pagos/comprobantes': typeof AdminPagosComprobantesRoute
+  '/admin/pagos/metodos': typeof AdminPagosMetodosRoute
   '/admin/verificacion/identidad': typeof AdminVerificacionIdentidadRoute
   '/admin/verificacion/listas': typeof AdminVerificacionListasRoute
   '/admin/comercios/': typeof AdminComerciosIndexRoute
@@ -750,6 +759,7 @@ export interface FileRouteTypes {
     | '/admin/otc/tasas'
     | '/admin/pagos/aprobacion'
     | '/admin/pagos/comprobantes'
+    | '/admin/pagos/metodos'
     | '/admin/verificacion/identidad'
     | '/admin/verificacion/listas'
     | '/admin/comercios/'
@@ -813,6 +823,7 @@ export interface FileRouteTypes {
     | '/admin/otc/tasas'
     | '/admin/pagos/aprobacion'
     | '/admin/pagos/comprobantes'
+    | '/admin/pagos/metodos'
     | '/admin/verificacion/identidad'
     | '/admin/verificacion/listas'
     | '/admin/comercios'
@@ -888,6 +899,7 @@ export interface FileRouteTypes {
     | '/admin/otc/tasas'
     | '/admin/pagos/aprobacion'
     | '/admin/pagos/comprobantes'
+    | '/admin/pagos/metodos'
     | '/admin/verificacion/identidad'
     | '/admin/verificacion/listas'
     | '/admin/comercios/'
@@ -1181,6 +1193,13 @@ declare module '@tanstack/react-router' {
       path: '/pagos/comprobantes'
       fullPath: '/admin/pagos/comprobantes'
       preLoaderRoute: typeof AdminPagosComprobantesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pagos/metodos': {
+      id: '/admin/pagos/metodos'
+      path: '/pagos/metodos'
+      fullPath: '/admin/pagos/metodos'
+      preLoaderRoute: typeof AdminPagosMetodosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/verificacion/identidad': {
@@ -1732,6 +1751,7 @@ interface AdminRouteChildren {
   AdminOtcTasasRoute: typeof AdminOtcTasasRoute
   AdminPagosAprobacionRoute: typeof AdminPagosAprobacionRoute
   AdminPagosComprobantesRoute: typeof AdminPagosComprobantesRoute
+  AdminPagosMetodosRoute: typeof AdminPagosMetodosRoute
   AdminVerificacionIdentidadRoute: typeof AdminVerificacionIdentidadRoute
   AdminVerificacionListasRoute: typeof AdminVerificacionListasRoute
   AdminOtcRegistroIndexRoute: typeof AdminOtcRegistroIndexRoute
@@ -1761,6 +1781,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOtcTasasRoute: AdminOtcTasasRoute,
   AdminPagosAprobacionRoute: AdminPagosAprobacionRoute,
   AdminPagosComprobantesRoute: AdminPagosComprobantesRoute,
+  AdminPagosMetodosRoute: AdminPagosMetodosRoute,
   AdminVerificacionIdentidadRoute: AdminVerificacionIdentidadRoute,
   AdminVerificacionListasRoute: AdminVerificacionListasRoute,
   AdminOtcRegistroIndexRoute: AdminOtcRegistroIndexRoute,

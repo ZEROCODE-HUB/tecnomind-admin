@@ -85,6 +85,7 @@ const NAV_COMPLETO: NavItem[] = [
       { to: "/admin/pagos/solicitudes", label: "Solicitudes de pago", icon: Receipt },
       { to: "/admin/pagos/comprobantes", label: "Comprobantes", icon: FileCheck2 },
       { to: "/admin/pagos/aprobacion", label: "Aprobación y rechazo", icon: ThumbsUp },
+      { to: "/admin/pagos/metodos", label: "Métodos de pago", icon: Wallet },
     ],
   },
   {
