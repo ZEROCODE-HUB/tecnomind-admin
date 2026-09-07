@@ -54,6 +54,18 @@ export function useGuardarMetodo() {
   });
 }
 
+/** Sube una imagen (QR/foto) al bucket 'images' y devuelve su URL pública. */
+export async function subirImagenMetodo(file: File): Promise<string> {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `metodos/${Date.now()}.${ext}`;
+  const { error } = await (supabase as any).storage
+    .from("images")
+    .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
+  if (error) throw error;
+  const { data } = (supabase as any).storage.from("images").getPublicUrl(path);
+  return data.publicUrl as string;
+}
+
 export function useEliminarMetodo() {
   const qc = useQueryClient();
   return useMutation({
