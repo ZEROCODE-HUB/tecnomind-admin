@@ -3,21 +3,13 @@ import type { TecnoMindClient } from "./supabase";
 /** Recursos protegidos del backoffice. Espejo de public.backoffice_resources. */
 export const RESOURCES = [
   "usuarios",
-  "movimientos",
-  "alertas",
-  "soporte",
-  "backoffice",
-  "reportes",
-  "registros",
-  "modulos",
-  "configuracion",
-  "incidentes",
-  "comercios",
   "verificacion",
+  "movimientos",
   "pagos",
   "otc",
   "estadisticas",
-  "notificaciones",
+  "backoffice",
+  "configuracion",
 ] as const;
 
 export type Resource = (typeof RESOURCES)[number];

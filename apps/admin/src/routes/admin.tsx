@@ -5,10 +5,7 @@ import {
   ShieldCheck,
   Users,
   ScanFace,
-  ShieldAlert,
   CreditCard,
-  Receipt,
-  FileCheck2,
   ThumbsUp,
   ArrowLeftRight,
   ListChecks,
@@ -21,12 +18,12 @@ import {
   ArrowUpFromLine,
   Percent,
   Wallet,
+  Settings,
 } from "lucide-react";
 import { PortalShell, type NavItem, type NavGroup } from "@/components/portal-shell";
 import type { Resource } from "@tecnomind/core";
 import { useDemoMode } from "@/contexts/demo-mode";
 import { RouteSkeleton } from "@/components/route-skeleton";
-import { AdminChatbot } from "@/components/admin-chatbot";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/contexts/auth";
 
@@ -49,7 +46,10 @@ const NAV_COMPLETO: NavItem[] = [
     items: [
       { to: "/admin/verificacion/clientes", label: "Perfiles de clientes", icon: Users },
       { to: "/admin/verificacion/identidad", label: "Revisión de identidad", icon: ScanFace },
-      { to: "/admin/verificacion/listas", label: "Listas restrictivas", icon: ShieldAlert },
+      // OCULTO: "Listas restrictivas" (filtro de sanciones/PEP) está cableado a
+      // la base pero sin uso (0 chequeos). Se saca del menú; la ruta sigue
+      // accesible por URL si se reactiva. Reactivar volviendo a listar acá:
+      //   { to: "/admin/verificacion/listas", label: "Listas restrictivas", icon: ShieldAlert },
     ],
   },
   {
@@ -58,6 +58,12 @@ const NAV_COMPLETO: NavItem[] = [
     recurso: "usuarios",
     items: [
       { to: "/admin/general/usuarios", label: "Personas físicas", icon: Users },
+      {
+        to: "/admin/administracion/usuarios/operadores",
+        label: "Operadores",
+        icon: UserCog,
+        recurso: "backoffice",
+      },
       {
         to: "/admin/administracion/usuarios/roles",
         label: "Roles y permisos",
@@ -82,9 +88,7 @@ const NAV_COMPLETO: NavItem[] = [
     icon: CreditCard,
     recurso: "pagos",
     items: [
-      { to: "/admin/pagos/solicitudes", label: "Solicitudes de pago", icon: Receipt },
-      { to: "/admin/pagos/comprobantes", label: "Comprobantes", icon: FileCheck2 },
-      { to: "/admin/pagos/aprobacion", label: "Aprobación y rechazo", icon: ThumbsUp },
+      { to: "/admin/pagos/aprobacion", label: "Depósitos y retiros", icon: ThumbsUp },
       { to: "/admin/pagos/metodos", label: "Métodos de pago", icon: Wallet },
     ],
   },
@@ -94,7 +98,7 @@ const NAV_COMPLETO: NavItem[] = [
     recurso: "otc",
     items: [
       { to: "/admin/otc/registro", label: "Registro de operaciones", icon: ListChecks },
-      { to: "/admin/otc/tasas", label: "Control de tasas y montos", icon: SlidersHorizontal },
+      { to: "/admin/otc/tasas", label: "Criptos y tasas", icon: SlidersHorizontal },
     ],
   },
   {
@@ -106,6 +110,7 @@ const NAV_COMPLETO: NavItem[] = [
       { to: "/admin/estadisticas/indicadores", label: "Indicadores generales", icon: Gauge },
     ],
   },
+  { to: "/admin/configuracion", label: "Configuración", icon: Settings, recurso: "configuracion" },
 ];
 
 const esGrupo = (item: NavItem): item is NavGroup => "items" in item;
@@ -134,7 +139,6 @@ function AdminLayout() {
     <RequireAuth>
       <PortalShell nav={nav} title="Backoffice">
         <Outlet />
-        <AdminChatbot />
       </PortalShell>
     </RequireAuth>
   );

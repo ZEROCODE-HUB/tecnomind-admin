@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Menu, LogOut, MoreHorizontal, ChevronDown, type LucideIcon } from "lucide-react";
+import { Menu, LogOut, ChevronDown, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { TecnoMindWordmark } from "./tecnomind-wordmark";
 import type { Resource } from "@tecnomind/core";
@@ -44,10 +44,6 @@ export function PortalShell({
       .map((p) => p[0]?.toUpperCase())
       .join("") || "?";
 
-  // La barra inferior móvil prioriza los módulos (grupos) sobre las rutas sueltas.
-  const mainNav: NavGroup[] = nav.filter(isGroup).slice(0, 4);
-  const more = nav.filter(isGroup).slice(4);
-
   // Cerrar sesion tiene que salir de Supabase, no solo cambiar el estado
   // local: sin el signOut el token seguia vivo y volver por URL entraba.
   const onLogout = async () => {
@@ -57,7 +53,7 @@ export function PortalShell({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Header superior */}
       <header className="h-14 border-b border-black-100 bg-white flex items-center justify-between px-4 lg:px-6 shrink-0">
         <div className="flex items-center gap-3">
@@ -92,9 +88,10 @@ export function PortalShell({
           </div>
           <button
             onClick={onLogout}
-            className="hidden md:inline-flex items-center gap-1 text-xs text-black-400 hover:text-black-700 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-black-400 hover:text-black-700 transition-colors"
+            aria-label="Cerrar sesión"
           >
-            <LogOut size={14} /> Salir
+            <LogOut size={16} /> <span className="hidden sm:inline">Salir</span>
           </button>
         </div>
       </header>
@@ -123,44 +120,32 @@ export function PortalShell({
               <nav className="p-3 flex-1 overflow-y-auto">
                 <SidebarNav nav={nav} path={path} onNavigate={() => setOpen(false)} />
               </nav>
+              <div className="border-t border-navy-600 p-3">
+                {operador && (
+                  <div className="px-1 pb-2 leading-tight">
+                    <div className="text-sm font-semibold text-white truncate">{operador.nombre}</div>
+                    <div className="text-[11px] text-white/50 truncate">{operador.email}</div>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    void onLogout();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-sm text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <LogOut size={16} /> Cerrar sesión
+                </button>
+              </div>
             </aside>
           </div>
         )}
 
         {/* Main */}
-        <main className="flex-1 min-w-0 overflow-y-auto pb-20 lg:pb-6">
+        <main className="flex-1 min-w-0 overflow-y-auto pb-6">
           <div className="max-w-[1400px] mx-auto p-4 md:p-6 lg:px-10 lg:py-8">{children}</div>
         </main>
       </div>
-
-      {/* Bottom nav mobile */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-black-100 flex items-stretch z-30">
-        {mainNav.map((mod) => {
-          const Icon = mod.icon;
-          const active = mod.items.some((i) => isActive(i.to, path));
-          return (
-            <button
-              key={mod.label}
-              onClick={() => setOpen(true)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] ${
-                active ? "text-moli-orange font-semibold" : "text-black-400 hover:text-moli-orange"
-              }`}
-            >
-              <Icon size={20} strokeWidth={1.75} />
-              <span className="truncate px-1">{mod.label}</span>
-            </button>
-          );
-        })}
-        {more.length > 0 && (
-          <button
-            onClick={() => setOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] text-black-400"
-          >
-            <MoreHorizontal size={20} strokeWidth={1.75} />
-            <span>Más</span>
-          </button>
-        )}
-      </nav>
     </div>
   );
 }

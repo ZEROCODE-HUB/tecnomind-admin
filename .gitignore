@@ -38,3 +38,8 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# temporales de generacion
+_gen.tmp
+_db_generated.tmp.ts
+*.tmp

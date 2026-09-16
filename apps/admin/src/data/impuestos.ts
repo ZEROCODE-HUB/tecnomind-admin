@@ -28,7 +28,7 @@ export const impuestosIniciales: Impuesto[] = [
     id: 2,
     codigo: "IIBB",
     nombre: "Ingresos Brutos",
-    descripcion: "Impuesto provincial sobre la comisión de TecnoMind.",
+    descripcion: "Impuesto provincial sobre la comisión de Burxia.",
     tipoImpuesto: "Porcentaje",
     monto: 4,
     estado: "Activo",

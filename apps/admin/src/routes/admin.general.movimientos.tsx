@@ -11,10 +11,8 @@ const tabs: Tab[] = [
   { label: "Depósitos", to: "/admin/general/movimientos/depositos" },
   { label: "Retiros", to: "/admin/general/movimientos/retiros" },
   { label: "Cobro de comisiones", to: "/admin/general/movimientos/comisiones" },
-  { label: "Impuestos cobrados", to: "/admin/general/movimientos/impuestos" },
-  { label: "Pagos con tarjeta", to: "/admin/general/movimientos/pagos-tarjeta" },
-  { label: "Pagos QR", to: "/admin/general/movimientos/pagos-qr" },
-  { label: "Cobros QR", to: "/admin/general/movimientos/cobros-qr" },
+  // Quitados (no aplican a este producto / eran mock): Impuestos, Pagos con
+  // tarjeta, Pagos QR, Cobros QR. Las rutas siguen por URL.
 ];
 
 function MovimientosLayout() {

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   EMPTY_PERMISSIONS,
@@ -36,6 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<PermissionMap>(EMPTY_PERMISSIONS);
   const [operador, setOperador] = useState<Operador | null>(null);
   const [loading, setLoading] = useState(true);
+  // Id del usuario para el que ya cargamos permisos. Sirve para NO recargar
+  // (ni mostrar el spinner) ante eventos de auth que no cambian el usuario,
+  // como el refresh de token o el re-chequeo al volver a la pestaña.
+  const loadedForId = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -43,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Los permisos se leen de la base en cada cambio de sesión y nunca se
     // guardan en el navegador: el RLS es la fuente de verdad, esto solo
     // decide qué se dibuja.
-    async function load(next: Session | null) {
+    async function load(next: Session | null, attempt = 0) {
       if (!next) {
         if (active) {
           setPermissions(EMPTY_PERMISSIONS);
@@ -58,6 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabase.rpc("get_my_backoffice_profile"),
         ]);
         if (!active) return;
+
+        // Carrera conocida (causaba "iniciar sesión dos veces"): en el primer
+        // load justo tras el sign-in, los permisos a veces vuelven vacíos
+        // porque el token recién se estaba adjuntando al cliente. Un reintento
+        // corto lo resuelve sin que el usuario tenga que reingresar.
+        if (!hasAnyAccess(perms) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 500));
+          if (!active) return;
+          await load(next, 1);
+          return;
+        }
+
         setPermissions(perms);
         const fila = (perfil.data ?? [])[0];
         setOperador(
@@ -69,26 +85,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             : null,
         );
+        setLoading(false);
       } catch (err) {
         console.error("No se pudieron cargar los permisos", err);
         if (active) {
           setPermissions(EMPTY_PERMISSIONS);
           setOperador(null);
+          setLoading(false);
         }
-      } finally {
-        if (active) setLoading(false);
       }
     }
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       setSession(data.session);
+      loadedForId.current = data.session?.user?.id ?? null;
       void load(data.session);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (!active) return;
       setSession(next);
+      const nextId = next?.user?.id ?? null;
+
+      if (event === "SIGNED_OUT" || !nextId) {
+        loadedForId.current = null;
+        void load(null);
+        return;
+      }
+
+      // Mismo usuario (TOKEN_REFRESHED, INITIAL_SESSION o el re-chequeo al
+      // volver a la pestaña): solo se actualiza el token en memoria. NO se
+      // recargan permisos ni se muestra el spinner — eso hacía que "se
+      // recargara todo" al volver a la app.
+      if (nextId === loadedForId.current) return;
+
+      loadedForId.current = nextId;
       setLoading(true);
       void load(next);
     });

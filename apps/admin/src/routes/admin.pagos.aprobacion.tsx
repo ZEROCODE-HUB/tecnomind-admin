@@ -52,7 +52,7 @@ function Page() {
   };
 
   const fecha = (iso: string) =>
-    new Date(iso).toLocaleString("es-AR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    new Date(iso).toLocaleString("es-CO", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div>
@@ -113,7 +113,10 @@ function Page() {
                     <div className="mt-2 text-sm space-y-0.5">
                       {esDeposito && s.metodo ? <p><span className="text-muted-foreground">Método:</span> {s.metodo}</p> : null}
                       {!esDeposito && s.destino ? (
-                        <p><span className="text-muted-foreground">Destino:</span> {s.destino.identifier}{s.destino.holder ? ` (${s.destino.holder})` : ""}</p>
+                        <p><span className="text-muted-foreground">Número de cuenta / alias:</span> {s.destino.identifier}{s.destino.holder ? ` (${s.destino.holder})` : ""}</p>
+                      ) : null}
+                      {!esDeposito && s.destino?.llave_breb ? (
+                        <p><span className="text-muted-foreground">Llave Bre-B:</span> {s.destino.llave_breb}</p>
                       ) : null}
                       {s.comentarioCliente ? <p><span className="text-muted-foreground">Comentario del cliente:</span> {s.comentarioCliente}</p> : null}
                       {s.comentarioOperador ? <p><span className="text-muted-foreground">Comentario del operador:</span> {s.comentarioOperador}</p> : null}

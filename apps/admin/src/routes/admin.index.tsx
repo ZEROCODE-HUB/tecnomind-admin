@@ -5,12 +5,15 @@ import {
   ArrowLeftRight,
   BarChart3,
   ArrowRight,
+  CreditCard,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { PageHeader, Card, Stat, Badge } from "@/components/portal-shell";
 import { EmptyState } from "@/components/empty-state";
 import { useResumen } from "@/lib/movimientos";
+import { useFundingPendientesCount } from "@/lib/solicitudes";
+import { useOtcPendientesCount } from "@/lib/otc";
 import { useClientes, formatARS, mensajeError } from "@/lib/clientes";
 import { useAuth } from "@/contexts/auth";
 
@@ -99,8 +102,15 @@ function Page() {
   const veClientes = can("verificacion", "read") || can("usuarios", "read");
   const veMovimientos = can("movimientos", "read");
   const veEstadisticas = can("estadisticas", "read");
+  const veOtc = can("otc", "read");
 
   const resumen = useResumen();
+  // Pendientes que deben "saltar a la cara" en el panel: depósitos/retiros por
+  // aprobar (funding_requests) y operaciones OTC por resolver (otc_orders).
+  const fondeoPend = useFundingPendientesCount(veMovimientos);
+  const otcPend = useOtcPendientesCount(veOtc);
+  const nFondeoPend = fondeoPend.data ?? 0;
+  const nOtcPend = otcPend.data ?? 0;
   // Sin permiso el padrón vuelve vacío y todo contador derivado daría 0,
   // que se leería como "no hay", no como "no podés ver". Ni se pide.
   const clientesQuery = useClientes(veClientes);
@@ -113,7 +123,6 @@ function Page() {
   const porRevisar = clientes.filter(
     (c) => c.estadoVerificacion === "Pendiente" || c.estadoVerificacion === "En revisión",
   ).length;
-  const listasPorCruzar = clientes.filter((c) => c.estadoCumplimiento === "Pendiente").length;
   const clientesActivos = clientes.filter((c) => c.estadoCuenta === "Activa").length;
 
   if (resumen.isLoading) {
@@ -166,14 +175,13 @@ function Page() {
         <ModuleCard
           icon={ShieldCheck}
           title="Verificación de clientes"
-          description="Consulta de perfiles, revisión de identidad y validación contra listas restrictivas antes de habilitar la cuenta."
+          description="Consulta de perfiles y revisión de identidad (KYC) de los clientes."
           mainTo="/admin/verificacion/clientes"
           mainLabel="Ir a perfiles de clientes"
           highlight={{ label: "Por revisar", value: porRevisar }}
           items={[
             { to: "/admin/verificacion/clientes", label: "Perfiles" },
             { to: "/admin/verificacion/identidad", label: "Identidad" },
-            { to: "/admin/verificacion/listas", label: "Listas restrictivas" },
           ]}
         />
         )}
@@ -190,6 +198,36 @@ function Page() {
             { to: "/admin/general/movimientos/depositos", label: "Depósitos" },
             { to: "/admin/general/movimientos/retiros", label: "Retiros" },
             { to: "/admin/general/movimientos/comisiones", label: "Comisiones" },
+          ]}
+        />
+        )}
+        {veMovimientos && (
+        <ModuleCard
+          icon={CreditCard}
+          title="Gestión de pagos"
+          description="Bandeja de depósitos y retiros que envían los clientes para aprobar o rechazar, y los métodos de pago que ven al depositar."
+          mainTo="/admin/pagos/aprobacion"
+          mainLabel="Ir a depósitos y retiros"
+          highlight={{ label: "Por aprobar", value: nFondeoPend }}
+          highlightTone={nFondeoPend > 0 ? "warn" : "success"}
+          items={[
+            { to: "/admin/pagos/aprobacion", label: "Depósitos y retiros" },
+            { to: "/admin/pagos/metodos", label: "Métodos de pago" },
+          ]}
+        />
+        )}
+        {veOtc && (
+        <ModuleCard
+          icon={ArrowLeftRight}
+          title="Operaciones OTC"
+          description="Compras y ventas de cripto (USDT) que solicitan los clientes, y el catálogo de criptos con sus tasas y comisiones."
+          mainTo="/admin/otc/registro"
+          mainLabel="Ir al registro de operaciones"
+          highlight={{ label: "Por resolver", value: nOtcPend }}
+          highlightTone={nOtcPend > 0 ? "warn" : "success"}
+          items={[
+            { to: "/admin/otc/registro", label: "Registro de operaciones" },
+            { to: "/admin/otc/tasas", label: "Criptos y tasas" },
           ]}
         />
         )}
@@ -233,7 +271,6 @@ function Page() {
                 label="Identidad por revisar"
                 value={porRevisar}
               />
-              <Cola to="/admin/verificacion/listas" label="Listas por cruzar" value={listasPorCruzar} />
             </>
           )}
           {veMovimientos && (
@@ -241,6 +278,20 @@ function Page() {
               to="/admin/general/movimientos"
               label="Movimientos pendientes"
               value={r?.movimientosPendientes ?? 0}
+            />
+          )}
+          {veMovimientos && (
+            <Cola
+              to="/admin/pagos/aprobacion"
+              label="Depósitos y retiros por aprobar"
+              value={nFondeoPend}
+            />
+          )}
+          {veOtc && (
+            <Cola
+              to="/admin/otc/registro"
+              label="OTC por resolver"
+              value={nOtcPend}
             />
           )}
           {can("usuarios", "read") && (

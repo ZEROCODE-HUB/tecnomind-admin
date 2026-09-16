@@ -1,10 +1,12 @@
-import logoSrcDark from "@/assets/tecnomindlogo-dark.png";
-import logoSrcWhite from "@/assets/tecnomindlogo-white.png";
+import logoSrc from "@/assets/burxia-isotipo.png";
 
+/**
+ * Isotipo de la marca (Burxia, "BX"). Mantiene el nombre del componente para no
+ * tocar sus usos.
+ */
 export function TecnoMindLogo({
   className = "",
   size = 48,
-  variant = "dark",
 }: {
   className?: string;
   size?: number;
@@ -13,8 +15,8 @@ export function TecnoMindLogo({
   return (
     <div className={`inline-flex items-center ${className}`}>
       <img
-        src={variant === "white" ? logoSrcWhite : logoSrcDark}
-        alt="TecnoMind"
+        src={logoSrc}
+        alt="Burxia"
         style={{ height: size, width: "auto", display: "block" }}
       />
     </div>

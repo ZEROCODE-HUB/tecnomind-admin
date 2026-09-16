@@ -1249,7 +1249,7 @@ export function UserModal({
 
         {user.tipoPersona === "fisica" && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiTile label="CVUs informadas" value={String(cvuInformados)} />
+            <KpiTile label="Cuentas informadas" value={String(cvuInformados)} />
             <KpiTile label="Máximo de subcuentas" value={String(entidad.maximoSubcuentas)} />
             <KpiTile
               label="Redirección automática"
@@ -1270,7 +1270,7 @@ export function UserModal({
             onClick={() => go("/admin/general/usuarios/cvu")}
             className={btnSmallOutline}
           >
-            Ir a usuarios con CVU
+            Ir a usuarios con Número de cuenta
           </button>
           <button
             type="button"
@@ -1392,7 +1392,7 @@ export function UserModal({
     { key: "modulos", label: "Módulos y productos", show: true },
     { key: "financiero", label: "Financiero & Compliance", show: true },
     { key: "documentos", label: "Documentos", show: true },
-    { key: "subcuentas", label: "Subcuentas & CVU", show: true },
+    { key: "subcuentas", label: "Subcuentas", show: true },
     { key: "historial", label: "Historial de cambios", show: true },
   ];
 
@@ -1491,7 +1491,7 @@ export function UserModal({
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">Cuentas virtuales (CVU)</div>
+          <div className="text-xs text-muted-foreground">Cuentas virtuales</div>
           <div className="text-sm font-semibold mt-0.5 tabular-nums">
             {user.cantidadCuentasVirtuales}
           </div>
@@ -1541,7 +1541,7 @@ export function UserModal({
   const contextoSection = (
     <SectionCard title="Contexto operativo">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
-        <KpiTile label="CVUs" value={String(cvuRecientes.length)} />
+        <KpiTile label="Cuentas" value={String(cvuRecientes.length)} />
         <KpiTile label="Comisiones" value={String(comisiones.length)} />
         <KpiTile label="Impuestos" value={String(impuestos.length)} />
         <KpiTile label="Alertas" value={String(alertas.length)} />
@@ -2205,7 +2205,7 @@ function SubDetailModal({ sub, onClose }: { sub: Subcuenta; onClose: () => void 
     .filter((m) => m.tipo === "egreso")
     .reduce((a, m) => a + m.monto, 0);
   const totalComisiones = allMoves
-    .filter((m) => m.entidad === "TecnoMind Financial S.A.")
+    .filter((m) => m.entidad === "Burxia Financial S.A.")
     .reduce((a, m) => a + m.monto, 0);
 
   const confirmAction = (accion: string, detalle: string): boolean =>
@@ -2432,7 +2432,7 @@ function SubDetailModal({ sub, onClose }: { sub: Subcuenta; onClose: () => void 
                     <Input
                       value={filterSearch}
                       onChange={(e) => setFilterSearch(e.target.value)}
-                      placeholder="TXID, CBU o entidad..."
+                      placeholder="TXID, Número de cuenta o entidad..."
                       className="h-9 text-sm w-full"
                     />
                   </div>
@@ -2499,7 +2499,7 @@ function SubDetailModal({ sub, onClose }: { sub: Subcuenta; onClose: () => void 
                         </span>
                       </div>
                       <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-                        <span>CBU/CVU: {m.cbu}</span>
+                        <span>Número de cuenta: {m.cbu}</span>
                         <span>{m.entidad}</span>
                         <span>
                           {m.fecha} · {m.hora}

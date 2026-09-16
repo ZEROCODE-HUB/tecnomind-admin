@@ -71,11 +71,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
-  // El auth se chequea ANTES que la config: un no-autenticado no debe
-  // poder ni averiguar si ZapSign está configurado. La firma ya la validó
-  // Supabase (verify_jwt); acá solo se mira el rol del payload.
+  // El KYC de ZapSign ocurre DURANTE el registro, cuando el usuario todavía NO
+  // tiene sesión (rol "anon"). Por eso aceptamos también "anon": exigir
+  // "authenticated" bloqueaba el signup con "No autenticado". Igual se requiere
+  // un JWT válido (la anon key), que Supabase valida por verify_jwt.
+  // NOTA prod: para mitigar abuso conviene sumar rate-limiting a create-doc.
   const rol = rolDelToken(req.headers.get("Authorization") ?? "");
-  if (rol !== "authenticated") return json({ error: "No autenticado" }, 401);
+  if (rol !== "authenticated" && rol !== "anon") {
+    return json({ error: "No autenticado" }, 401);
+  }
 
   if (!API_KEY || !TEMPLATE_ID) {
     return json({ error: "ZapSign no está configurado en el servidor." }, 503);

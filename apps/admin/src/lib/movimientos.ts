@@ -78,8 +78,8 @@ export type Movimiento = {
 const CAMPOS =
   "id, reference_number, created_at, completed_at, amount, commission_amount, net_amount, " +
   "currency, concept, payment_method, status, failure_reason, type_code, type_name, " +
-  "type_category, from_cvu, from_alias, from_user_name, from_user_email, from_user_document, " +
-  "from_user_tax_id, to_cvu, to_alias, to_user_name, to_user_email, to_user_document, to_user_tax_id";
+  "type_category, from_account_number, from_alias, from_user_name, from_user_email, from_user_document, " +
+  "from_user_tax_id, to_account_number, to_alias, to_user_name, to_user_email, to_user_document, to_user_tax_id";
 
 type Fila = Record<string, unknown>;
 
@@ -95,7 +95,7 @@ function aMovimiento(f: Fila): Movimiento {
     monto: n("amount"),
     comision: n("commission_amount"),
     neto: n("net_amount"),
-    moneda: s("currency") ?? "ARS",
+    moneda: s("currency") ?? "COP",
     concepto: s("concept"),
     metodo: s("payment_method"),
     estado: ESTADO_A_UI[s("status") ?? ""] ?? "PENDIENTE",
@@ -106,13 +106,13 @@ function aMovimiento(f: Fila): Movimiento {
     origenEmail: s("from_user_email"),
     origenDocumento: s("from_user_document"),
     origenCuit: s("from_user_tax_id"),
-    origenCvu: s("from_cvu"),
+    origenCvu: s("from_account_number"),
     origenAlias: s("from_alias"),
     destinoNombre: s("to_user_name"),
     destinoEmail: s("to_user_email"),
     destinoDocumento: s("to_user_document"),
     destinoCuit: s("to_user_tax_id"),
-    destinoCvu: s("to_cvu"),
+    destinoCvu: s("to_account_number"),
     destinoAlias: s("to_alias"),
   };
 }
@@ -227,7 +227,7 @@ export function useSerieDiaria(dias: number) {
       return (data ?? []).map((f) => ({
         dia: f.dia,
         // Etiqueta corta para el eje: el día completo no entra.
-        etiqueta: new Date(`${f.dia}T00:00:00`).toLocaleDateString("es-AR", {
+        etiqueta: new Date(`${f.dia}T00:00:00`).toLocaleDateString("es-CO", {
           day: "2-digit",
           month: "2-digit",
         }),

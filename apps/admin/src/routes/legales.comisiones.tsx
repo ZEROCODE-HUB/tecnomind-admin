@@ -9,14 +9,14 @@ export const Route = createFileRoute("/legales/comisiones")({
 
 const filas = [
   { op: "Transferencias entre cuentas TecnoMind", com: "Sin cargo" },
-  { op: "Transferencias inmediatas a CBU/CVU (hasta $ 500.000)", com: "Sin cargo" },
-  { op: "Transferencias inmediatas a CBU/CVU (mas de $ 500.000)", com: "0,30% + IVA" },
+  { op: "Transferencias inmediatas a Número de cuenta (hasta $ 500.000)", com: "Sin cargo" },
+  { op: "Transferencias inmediatas a Número de cuenta (mas de $ 500.000)", com: "0,30% + IVA" },
   { op: "Cobros con QR", com: "0,80% + IVA por operacion" },
   { op: "Link de pago (debito / credito)", com: "1,90% + IVA por operacion" },
   { op: "Cobros masivos por lote", com: "$ 45 + IVA por acreditacion" },
   { op: "Pago de servicios", com: "Sin cargo" },
-  { op: "Alta de subcuenta con CBU propio", com: "Sin cargo" },
-  { op: "Emision de constancia de CBU", com: "Sin cargo" },
+  { op: "Alta de subcuenta con Número de cuenta propio", com: "Sin cargo" },
+  { op: "Emision de constancia de Número de cuenta", com: "Sin cargo" },
 ];
 
 function Page() {

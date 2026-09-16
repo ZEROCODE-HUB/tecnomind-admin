@@ -16,6 +16,7 @@ export type MetodoPago = {
   holder_name: string | null;
   account_number: string | null;
   alias: string | null;
+  llave_breb: string | null;
   instructions: string | null;
   is_active: boolean;
   sort_order: number;

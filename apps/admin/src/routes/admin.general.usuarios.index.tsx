@@ -16,7 +16,6 @@ import {
   tonePorEstado,
   formatARS,
   formatFecha,
-  formatCuit,
   formatDocumento,
   mensajeError,
   type Cliente,
@@ -89,7 +88,7 @@ function PersonasFisicasPage() {
     ];
     // Sin cuenta creada no hay estado que mover: el alta la hace el
     // trigger de registro, no el operador.
-    if (!puedeEditar || !c.cvu) return actions;
+    if (!puedeEditar || !c.numeroCuenta) return actions;
 
     if (c.estadoCuenta === "Suspendida" || c.estadoCuenta === "Bloqueada") {
       actions.push({
@@ -129,10 +128,10 @@ function PersonasFisicasPage() {
   const columns: Column<Cliente>[] = [
     {
       key: "cvu",
-      label: "CVU",
+      label: "Número de cuenta",
       filterable: true,
       render: (c) => (
-        <span className="font-mono tabular-nums text-xs">{c.cvu ?? "sin cuenta"}</span>
+        <span className="font-mono tabular-nums text-xs">{c.numeroCuenta ?? "sin cuenta"}</span>
       ),
     },
     { key: "email", label: "Usuario", filterable: true, render: (c) => c.email },
@@ -146,12 +145,6 @@ function PersonasFisicasPage() {
           {c.tipoDocumento} {formatDocumento(c.documento)}
         </span>
       ),
-    },
-    {
-      key: "cuit",
-      label: "CUIT / CUIL",
-      filterable: true,
-      render: (c) => <span className="font-mono text-xs">{formatCuit(c.cuit)}</span>,
     },
     {
       key: "estado",
@@ -168,7 +161,7 @@ function PersonasFisicasPage() {
       label: "Saldo",
       sortable: true,
       render: (c) => (
-        <span className="font-mono tabular-nums text-xs">{c.cvu ? formatARS(c.saldo) : "—"}</span>
+        <span className="font-mono tabular-nums text-xs">{c.numeroCuenta ? formatARS(c.saldo) : "—"}</span>
       ),
     },
     {

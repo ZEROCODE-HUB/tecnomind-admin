@@ -1,15 +1,15 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { TabLayout, type Tab } from "@/components/tab-layout";
 
 export const Route = createFileRoute("/admin/administracion/usuarios")({
   component: Layout,
 });
 
-const tabs: Tab[] = [
-  { label: "Administración de personal", to: "/admin/administracion/usuarios" },
-  { label: "Roles y permisos", to: "/admin/administracion/usuarios/roles" },
-];
-
+/**
+ * Antes había dos pestañas: "Administración de personal" (100% mock, con 3
+ * roles hardcodeados que no coincidían con los reales) y "Roles y permisos"
+ * (real). Se dejó solo la real; el índice redirige a ella. Sin pestañas,
+ * porque es una sola pantalla.
+ */
 function Layout() {
-  return <TabLayout tabs={tabs}><Outlet /></TabLayout>;
+  return <Outlet />;
 }

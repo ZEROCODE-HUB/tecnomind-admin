@@ -113,20 +113,21 @@ export function tonePorEstado(estado: string): "neutral" | "success" | "warn" | 
 // Formato
 // ─────────────────────────────────────────────────────────────
 
-const pesos = new Intl.NumberFormat("es-AR", {
+const pesos = new Intl.NumberFormat("es-CO", {
   style: "currency",
-  currency: "ARS",
+  currency: "COP",
   minimumFractionDigits: 2,
 });
 
+/** Formatea un monto en pesos (COP). El nombre se mantiene por compatibilidad. */
 export const formatARS = (v: number | null | undefined) => pesos.format(v ?? 0);
 
 export const formatFecha = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString("es-AR") : "—";
+  iso ? new Date(iso).toLocaleDateString("es-CO") : "—";
 
 export const formatFechaHora = (iso: string | null | undefined) =>
   iso
-    ? new Date(iso).toLocaleString("es-AR", {
+    ? new Date(iso).toLocaleString("es-CO", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -165,8 +166,7 @@ export type Cliente = {
   observaciones: string;
   scoreKyc: number | null;
   proveedorKyc: string | null;
-  cvu: string | null;
-  cbu: string | null;
+  numeroCuenta: string | null;
   alias: string | null;
   saldo: number;
   motivoEstadoCuenta: string | null;
@@ -185,8 +185,7 @@ type FilaCliente = {
   verification_status: string | null;
   role: string;
   created_at: string | null;
-  cvu: string | null;
-  cbu: string | null;
+  account_number: string | null;
   alias: string | null;
   balance: number | null;
   account_status: string | null;
@@ -200,7 +199,7 @@ type FilaCliente = {
 
 const CAMPOS_CLIENTE =
   "id, full_name, email, phone, document_type, document_number, tax_id, country_code, " +
-  "verification_status, role, created_at, cvu, cbu, alias, balance, account_status, " +
+  "verification_status, role, created_at, account_number, alias, balance, account_status, " +
   "account_status_reason, compliance_status, compliance_notes, kyc_score, kyc_provider, is_operator";
 
 function aCliente(f: FilaCliente): Cliente {
@@ -209,7 +208,7 @@ function aCliente(f: FilaCliente): Cliente {
     nombre: f.full_name ?? "—",
     email: f.email,
     telefono: f.phone,
-    tipoDocumento: f.document_type ?? "DNI",
+    tipoDocumento: f.document_type ?? "Documento",
     documento: f.document_number,
     cuit: f.tax_id,
     pais: f.country_code ?? "AR",
@@ -223,8 +222,7 @@ function aCliente(f: FilaCliente): Cliente {
     observaciones: f.compliance_notes ?? "",
     scoreKyc: f.kyc_score,
     proveedorKyc: f.kyc_provider,
-    cvu: f.cvu,
-    cbu: f.cbu,
+    numeroCuenta: f.account_number,
     alias: f.alias,
     saldo: Number(f.balance ?? 0),
     motivoEstadoCuenta: f.account_status_reason,

@@ -28,7 +28,7 @@ function LoginPage() {
   // Si ya hay sesión con acceso, no tiene sentido mostrar el formulario.
   useEffect(() => {
     if (!loading && session && hasAccess) {
-      void navigate({ to: redirect ?? "/admin" });
+      void navigate({ to: redirect ?? "/admin", replace: true });
     }
   }, [loading, session, hasAccess, navigate, redirect]);
 
@@ -88,7 +88,7 @@ function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
-                  placeholder="operador@tecnomind.com"
+                  placeholder="operador@burxia.com"
                 />
               </div>
             </div>

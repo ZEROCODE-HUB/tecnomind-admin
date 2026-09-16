@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle2, Ban, UserCheck, Loader2, AlertCircle } from "lucide-react";
+import { Eye, CheckCircle2, Ban, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type Column } from "@/components/data-table";
 import { ActionsDropdown, type ActionItem } from "@/components/actions-dropdown";
@@ -15,11 +15,9 @@ import {
   tonePorEstado,
   formatARS,
   formatFecha,
-  formatCuit,
   formatDocumento,
   mensajeError,
   ESTADOS_VERIFICACION,
-  ESTADOS_CUMPLIMIENTO,
   type Cliente,
 } from "@/lib/clientes";
 
@@ -48,15 +46,10 @@ function Page() {
   }, [detailId, detail, clientesQuery.isLoading]);
 
   const habilitarCuenta = (c: Cliente) => {
-    // La puerta sigue siendo la misma que en el prototipo: identidad
-    // aprobada y listas superadas. La diferencia es que ahora ambos
-    // estados vienen de la base.
+    // Única puerta: la verificación de identidad (ZapSign). El filtro de
+    // listas restrictivas se retiró (no se usa).
     if (c.estadoVerificacion !== "Aprobada") {
       toast.warning("No se puede habilitar la cuenta: la verificación de identidad no está aprobada.");
-      return;
-    }
-    if (c.estadoCumplimiento !== "Pasa") {
-      toast.warning("No se puede habilitar la cuenta: el cliente no pasó el filtro de listas restrictivas.");
       return;
     }
     setEstadoCuenta.mutate(
@@ -76,7 +69,7 @@ function Page() {
     if (c.estadoCuenta !== "Activa") {
       actions.push({ label: "Habilitar cuenta", icon: CheckCircle2, onClick: () => habilitarCuenta(c) });
     }
-    if (c.estadoCuenta !== "Bloqueada" && c.cvu) {
+    if (c.estadoCuenta !== "Bloqueada" && c.numeroCuenta) {
       actions.push({
         label: "Bloquear cuenta",
         icon: Ban,
@@ -112,13 +105,6 @@ function Page() {
       ),
     },
     {
-      key: "cuit",
-      label: "CUIT / CUIL",
-      sortable: true,
-      filterable: true,
-      render: (c) => <span className="font-mono text-xs">{formatCuit(c.cuit)}</span>,
-    },
-    {
       key: "fechaRegistro",
       label: "Registro",
       sortable: true,
@@ -134,19 +120,6 @@ function Page() {
       render: (c) => <Badge tone={tonePorEstado(c.estadoVerificacion)}>{c.estadoVerificacion}</Badge>,
     },
     {
-      key: "estadoCumplimiento",
-      label: "Listas restrictivas",
-      sortable: true,
-      filterable: "enum",
-      filterOptions: ESTADOS_CUMPLIMIENTO,
-      render: (c) => (
-        <div className="flex items-center gap-2">
-          <Badge tone={tonePorEstado(c.estadoCumplimiento)}>{c.estadoCumplimiento}</Badge>
-          {c.estadoCumplimiento === "Pasa" && <UserCheck size={14} className="text-emerald-600" />}
-        </div>
-      ),
-    },
-    {
       key: "estadoCuenta",
       label: "Cuenta",
       sortable: true,
@@ -160,7 +133,7 @@ function Page() {
       sortable: true,
       render: (c) => (
         <span className="font-mono tabular-nums text-xs">
-          {c.cvu ? formatARS(c.saldo) : "—"}
+          {c.numeroCuenta ? formatARS(c.saldo) : "—"}
         </span>
       ),
     },

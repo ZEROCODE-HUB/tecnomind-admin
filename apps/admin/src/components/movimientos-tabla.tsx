@@ -7,7 +7,7 @@ import { ActionsDropdown } from "@/components/actions-dropdown";
 import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/portal-shell";
 import { DetailModal, estadoBadge } from "@/components/movimiento-detail";
-import { formatARS, formatFechaHora, formatCuit, mensajeError } from "@/lib/clientes";
+import { formatARS, formatFechaHora, formatDocumento, mensajeError } from "@/lib/clientes";
 import { useMovimientos, type Grupo, type Movimiento } from "@/lib/movimientos";
 
 /**
@@ -146,17 +146,17 @@ export function MovimientosTabla({
             { label: "Tipo", value: detail.tipo },
             { label: "Origen", value: detail.origenNombre ?? "—" },
             {
-              label: "CVU origen",
+              label: "Número de cuenta origen",
               value: <span className="font-mono text-xs">{detail.origenCvu ?? "—"}</span>,
             },
             { label: "Destino", value: detail.destinoNombre ?? "—" },
             {
-              label: "CVU destino",
+              label: "Número de cuenta destino",
               value: <span className="font-mono text-xs">{detail.destinoCvu ?? "—"}</span>,
             },
             {
-              label: "CUIT destino",
-              value: <span className="font-mono tabular-nums">{formatCuit(detail.destinoCuit)}</span>,
+              label: "Documento destino",
+              value: <span className="font-mono tabular-nums">{formatDocumento(detail.destinoCuit)}</span>,
             },
             {
               label: "Monto",

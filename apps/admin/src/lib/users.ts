@@ -347,10 +347,10 @@ const MOV_SUBCUENTA_MOCK: MovimientoSub[] = [
   },
   {
     tipo: "egreso",
-    titulo: "Comision TecnoMind",
+    titulo: "Comision Burxia",
     txid: "TX-2026-05-31-8853",
     cbu: "0000003100112345678901",
-    entidad: "TecnoMind Financial S.A.",
+    entidad: "Burxia Financial S.A.",
     fecha: "31/05/2026",
     hora: "12:00",
     monto: 4820,

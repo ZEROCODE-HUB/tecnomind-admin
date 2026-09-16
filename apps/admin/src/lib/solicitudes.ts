@@ -62,6 +62,22 @@ export function useSolicitudes(soloPendientes: boolean) {
   });
 }
 
+/** Cantidad de depósitos/retiros pendientes de aprobación (para el panel). */
+export function useFundingPendientesCount(enabled: boolean) {
+  return useQuery({
+    queryKey: ["funding-pendientes-count"],
+    enabled,
+    queryFn: async () => {
+      const { count, error } = await (supabase as any)
+        .from("funding_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
 export function useResolverSolicitud() {
   const qc = useQueryClient();
   return useMutation({

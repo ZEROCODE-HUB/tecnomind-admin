@@ -9,7 +9,6 @@ import {
   tonePorEstado,
   formatARS,
   formatFecha,
-  formatCuit,
   formatDocumento,
   mensajeError,
   type Cliente,
@@ -65,7 +64,6 @@ export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: (
               <Field label="Nombre" value={cliente.nombre} />
               <Field label="Tipo de documento" value={cliente.tipoDocumento} />
               <Field label="Número de documento" value={formatDocumento(cliente.documento)} />
-              <Field label="CUIT / CUIL" value={formatCuit(cliente.cuit)} />
               <Field label="Correo electrónico" value={cliente.email} />
               <Field label="Teléfono" value={cliente.telefono} />
               <Field label="País" value={cliente.pais} />
@@ -79,7 +77,7 @@ export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: (
 
           <Card className="p-5">
             <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Estado de verificación y cumplimiento
+              Estado de verificación
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
               <Field
@@ -87,14 +85,6 @@ export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: (
                 value={
                   <Badge tone={tonePorEstado(cliente.estadoVerificacion)}>
                     {cliente.estadoVerificacion}
-                  </Badge>
-                }
-              />
-              <Field
-                label="Listas restrictivas"
-                value={
-                  <Badge tone={tonePorEstado(cliente.estadoCumplimiento)}>
-                    {cliente.estadoCumplimiento}
                   </Badge>
                 }
               />
@@ -120,10 +110,9 @@ export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: (
             <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
               Cuenta
             </h4>
-            {cliente.cvu ? (
+            {cliente.numeroCuenta ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
-                <Field label="CVU" value={<span className="font-mono text-xs">{cliente.cvu}</span>} />
-                <Field label="CBU" value={<span className="font-mono text-xs">{cliente.cbu}</span>} />
+                <Field label="Número de cuenta" value={<span className="font-mono text-xs">{cliente.numeroCuenta}</span>} />
                 <Field label="Alias" value={<span className="font-mono text-xs">{cliente.alias}</span>} />
                 <Field
                   label="Saldo"

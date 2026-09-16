@@ -24,6 +24,7 @@ const EMPTY: MetodoInput = {
   holder_name: null,
   account_number: null,
   alias: null,
+  llave_breb: null,
   instructions: null,
   is_active: true,
   sort_order: 0,
@@ -86,8 +87,9 @@ function Page() {
                   <div className="mt-1 text-sm text-muted-foreground space-y-0.5">
                     {m.bank_name ? <p>Banco: {m.bank_name}</p> : null}
                     {m.holder_name ? <p>Titular: {m.holder_name}</p> : null}
-                    {m.account_number ? <p>CBU/CVU: {m.account_number}</p> : null}
+                    {m.account_number ? <p>Número de cuenta: {m.account_number}</p> : null}
                     {m.alias ? <p>Alias: {m.alias}</p> : null}
+                    {m.llave_breb ? <p>Llave Bre-B: {m.llave_breb}</p> : null}
                     {m.instructions ? <p>{m.instructions}</p> : null}
                     {m.image_path ? <p>Imagen/QR: {m.image_path}</p> : null}
                   </div>
@@ -118,8 +120,9 @@ function Page() {
               <Field label="Nombre visible *" value={editing.values.label} onChange={(v) => set("label", v)} placeholder="Transferencia bancaria" />
               <Field label="Banco" value={editing.values.bank_name} onChange={(v) => set("bank_name", v)} />
               <Field label="Titular" value={editing.values.holder_name} onChange={(v) => set("holder_name", v)} />
-              <Field label="CBU / CVU / Nº de cuenta" value={editing.values.account_number} onChange={(v) => set("account_number", v)} />
+              <Field label="Número de cuenta" value={editing.values.account_number} onChange={(v) => set("account_number", v)} />
               <Field label="Alias" value={editing.values.alias} onChange={(v) => set("alias", v)} />
+              <Field label="Llave Bre-B" value={editing.values.llave_breb} onChange={(v) => set("llave_breb", v)} />
               <div>
                 <label className="block text-sm font-medium mb-1">Imagen / QR</label>
                 {editing.values.image_path ? (
