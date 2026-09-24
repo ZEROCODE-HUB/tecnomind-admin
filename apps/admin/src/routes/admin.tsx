@@ -5,6 +5,7 @@ import {
   ShieldCheck,
   Users,
   ScanFace,
+  FileCheck,
   CreditCard,
   ThumbsUp,
   ArrowLeftRight,
@@ -46,6 +47,7 @@ const NAV_COMPLETO: NavItem[] = [
     items: [
       { to: "/admin/verificacion/clientes", label: "Perfiles de clientes", icon: Users },
       { to: "/admin/verificacion/identidad", label: "Revisión de identidad", icon: ScanFace },
+      { to: "/admin/verificacion/kyb", label: "Vinculación KYB", icon: FileCheck },
       // OCULTO: "Listas restrictivas" (filtro de sanciones/PEP) está cableado a
       // la base pero sin uso (0 chequeos). Se saca del menú; la ruta sigue
       // accesible por URL si se reactiva. Reactivar volviendo a listar acá:

@@ -39,6 +39,7 @@ import { Route as AdminGeneralMovimientosRetirosRouteImport } from './routes/adm
 import { Route as AdminGeneralUsuariosIndexRouteImport } from './routes/admin.general.usuarios.index'
 import { Route as AdminOtcRegistroIndexRouteImport } from './routes/admin.otc.registro.index'
 import { Route as AdminVerificacionClientesIndexRouteImport } from './routes/admin.verificacion.clientes.index'
+import { Route as AdminVerificacionKybIndexRouteImport } from './routes/admin.verificacion.kyb.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -203,6 +204,12 @@ const AdminVerificacionClientesIndexRoute =
     path: '/verificacion/clientes/',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminVerificacionKybIndexRoute =
+  AdminVerificacionKybIndexRouteImport.update({
+    id: '/verificacion/kyb/',
+    path: '/verificacion/kyb/',
+    getParentRoute: () => AdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/admin/general/usuarios/': typeof AdminGeneralUsuariosIndexRoute
   '/admin/otc/registro/': typeof AdminOtcRegistroIndexRoute
   '/admin/verificacion/clientes/': typeof AdminVerificacionClientesIndexRoute
+  '/admin/verificacion/kyb/': typeof AdminVerificacionKybIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
   '/admin/general/usuarios': typeof AdminGeneralUsuariosIndexRoute
   '/admin/otc/registro': typeof AdminOtcRegistroIndexRoute
   '/admin/verificacion/clientes': typeof AdminVerificacionClientesIndexRoute
+  '/admin/verificacion/kyb': typeof AdminVerificacionKybIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -295,6 +304,7 @@ export interface FileRoutesById {
   '/admin/general/usuarios/': typeof AdminGeneralUsuariosIndexRoute
   '/admin/otc/registro/': typeof AdminOtcRegistroIndexRoute
   '/admin/verificacion/clientes/': typeof AdminVerificacionClientesIndexRoute
+  '/admin/verificacion/kyb/': typeof AdminVerificacionKybIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/admin/general/usuarios/'
     | '/admin/otc/registro/'
     | '/admin/verificacion/clientes/'
+    | '/admin/verificacion/kyb/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/admin/general/usuarios'
     | '/admin/otc/registro'
     | '/admin/verificacion/clientes'
+    | '/admin/verificacion/kyb'
   id:
     | '__root__'
     | '/'
@@ -388,6 +400,7 @@ export interface FileRouteTypes {
     | '/admin/general/usuarios/'
     | '/admin/otc/registro/'
     | '/admin/verificacion/clientes/'
+    | '/admin/verificacion/kyb/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -612,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVerificacionClientesIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/verificacion/kyb/': {
+      id: '/admin/verificacion/kyb/'
+      path: '/verificacion/kyb'
+      fullPath: '/admin/verificacion/kyb/'
+      preLoaderRoute: typeof AdminVerificacionKybIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -695,6 +715,7 @@ interface AdminRouteChildren {
   AdminVerificacionListasRoute: typeof AdminVerificacionListasRoute
   AdminOtcRegistroIndexRoute: typeof AdminOtcRegistroIndexRoute
   AdminVerificacionClientesIndexRoute: typeof AdminVerificacionClientesIndexRoute
+  AdminVerificacionKybIndexRoute: typeof AdminVerificacionKybIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -714,6 +735,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVerificacionListasRoute: AdminVerificacionListasRoute,
   AdminOtcRegistroIndexRoute: AdminOtcRegistroIndexRoute,
   AdminVerificacionClientesIndexRoute: AdminVerificacionClientesIndexRoute,
+  AdminVerificacionKybIndexRoute: AdminVerificacionKybIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
