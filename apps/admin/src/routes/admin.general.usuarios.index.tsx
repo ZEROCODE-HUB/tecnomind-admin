@@ -183,8 +183,8 @@ function PersonasFisicasPage() {
   return (
     <>
       <PageHeader
-        title="Personas físicas"
-        description="Usuarios individuales registrados en la plataforma."
+        title="Clientes"
+        description="Clientes registrados en la plataforma. Abrí una ficha para ver y resolver su vinculación KYB."
       />
 
       {clientesQuery.isLoading ? (
