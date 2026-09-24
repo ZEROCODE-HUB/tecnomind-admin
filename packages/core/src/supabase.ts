@@ -27,6 +27,16 @@ export function createTecnoMindClient(url: string, anonKey: string): TecnoMindCl
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      // Lock de auth NO bloqueante. El lock por defecto (Navigator LockManager)
+      // ESPERA el candado; si otra pestaña/instancia lo retiene y no lo libera
+      // (o la pestaña quedó en segundo plano), el refresh de token queda colgado
+      // y las queries se quedan "cargando para siempre" (se arreglaba recargando).
+      // Con `ifAvailable` coordina cuando puede y, si no, ejecuta igual — nunca
+      // espera indefinidamente.
+      lock: (name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+        if (typeof navigator === "undefined" || !navigator.locks?.request) return fn();
+        return navigator.locks.request(name, { ifAvailable: true }, () => fn());
+      },
     },
   });
 }
