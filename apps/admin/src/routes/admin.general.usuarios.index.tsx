@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Eye, XCircle, RotateCcw, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -7,7 +7,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ActionsDropdown, type ActionItem } from "@/components/actions-dropdown";
 import { EmptyState } from "@/components/empty-state";
-import { Badge, Card } from "@/components/portal-shell";
+import { Badge, Card, Stat } from "@/components/portal-shell";
 import { PerfilModal } from "@/components/cliente-perfil-modal";
 import { useAuth } from "@/contexts/auth";
 import {
@@ -20,6 +20,7 @@ import {
   mensajeError,
   type Cliente,
 } from "@/lib/clientes";
+import { useKybSubmissions } from "@/lib/kyb";
 
 export const Route = createFileRoute("/admin/general/usuarios/")({
   component: PersonasFisicasPage,
@@ -54,7 +55,9 @@ function PersonasFisicasPage() {
   const { can } = useAuth();
   const puedeEditar = can("usuarios", "update");
   const clientesQuery = useClientes();
+  const kybQuery = useKybSubmissions();
   const setEstadoCuenta = useSetEstadoCuenta();
+  const [kybFiltro, setKybFiltro] = useState<string>("Todos");
 
   const [detailId, setDetailId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
@@ -69,6 +72,16 @@ function PersonasFisicasPage() {
   // clientes; esta pantalla es el padrón de clientes.
   const clientes = (clientesQuery.data ?? []).filter((c) => !c.esOperador);
   const detail = clientes.find((c) => c.id === detailId) ?? null;
+
+  // Estado de la vinculación KYB por cliente (vive en kyb_submissions, no en
+  // verification_status). "Sin enviar" = todavía no cargó el formulario.
+  const kybByUser = useMemo(
+    () => new Map((kybQuery.data ?? []).map((k) => [k.userId, k.estado as string])),
+    [kybQuery.data],
+  );
+  const kybDe = (c: Cliente): string => kybByUser.get(c.id) ?? "Sin enviar";
+  const cuentaKyb = (estado: string) => clientes.filter((c) => kybDe(c) === estado).length;
+  const clientesVista = kybFiltro === "Todos" ? clientes : clientes.filter((c) => kybDe(c) === kybFiltro);
 
   const cambiarEstado = (c: Cliente, estado: "Activa" | "Suspendida", motivo: string) =>
     setEstadoCuenta.mutate(
@@ -162,6 +175,14 @@ function PersonasFisicasPage() {
       },
     },
     {
+      key: "kyb",
+      label: "Vinculación KYB",
+      render: (c) => {
+        const k = kybDe(c);
+        return <Badge tone={tonePorEstado(k)}>{k}</Badge>;
+      },
+    },
+    {
       key: "saldo",
       label: "Saldo",
       sortable: true,
@@ -187,6 +208,32 @@ function PersonasFisicasPage() {
         description="Clientes registrados en la plataforma. Abrí una ficha para ver y resolver su vinculación KYB."
       />
 
+      {/* Contadores de vinculación KYB */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Stat label="Pendientes de revisar" value={String(cuentaKyb("En revisión"))} />
+        <Stat label="Sin formulario" value={String(cuentaKyb("Sin enviar"))} />
+        <Stat label="Aprobados" value={String(cuentaKyb("Aprobada"))} />
+        <Stat label="Rechazados" value={String(cuentaKyb("Rechazada"))} />
+      </div>
+
+      {/* Filtro rápido por estado de KYB */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {["Todos", "En revisión", "Sin enviar", "Aprobada", "Rechazada"].map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setKybFiltro(f)}
+            className={`h-8 px-3.5 rounded-full text-sm font-medium border transition-colors ${
+              kybFiltro === f
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card text-muted-foreground border-border hover:bg-muted"
+            }`}
+          >
+            {f === "En revisión" ? "Pendientes de revisar" : f === "Sin enviar" ? "Sin formulario" : f}
+          </button>
+        ))}
+      </div>
+
       {clientesQuery.isLoading ? (
         <Card>
           <div className="py-12 flex justify-center text-muted-foreground">
@@ -211,7 +258,7 @@ function PersonasFisicasPage() {
       ) : (
         <DataTable
           columns={columns}
-          data={clientes}
+          data={clientesVista}
           keyExtractor={(c) => c.id}
           actions={(c) => <ActionsDropdown actions={getActions(c)} />}
         />
