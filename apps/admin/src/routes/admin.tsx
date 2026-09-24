@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   ShieldCheck,
   Users,
-  ScanFace,
-  FileCheck,
   CreditCard,
   ThumbsUp,
   ArrowLeftRight,
@@ -40,29 +38,16 @@ export const Route = createFileRoute("/admin")({
  */
 const NAV_COMPLETO: NavItem[] = [
   { to: "/admin", label: "Panel general", icon: LayoutDashboard },
-  {
-    label: "Verificación de clientes",
-    icon: ShieldCheck,
-    recurso: "verificacion",
-    items: [
-      { to: "/admin/verificacion/clientes", label: "Perfiles de clientes", icon: Users },
-      { to: "/admin/verificacion/kyb", label: "Vinculación KYB", icon: FileCheck },
-      // OCULTO: "Revisión de identidad" quedó redundante con la Vinculación KYB
-      // (la verificación se resuelve ahí). La ruta sigue existiendo, solo se
-      // saca del menú.
-      // { to: "/admin/verificacion/identidad", label: "Revisión de identidad", icon: ScanFace },
-      // OCULTO: "Listas restrictivas" (filtro de sanciones/PEP) está cableado a
-      // la base pero sin uso (0 chequeos). Se saca del menú; la ruta sigue
-      // accesible por URL si se reactiva. Reactivar volviendo a listar acá:
-      //   { to: "/admin/verificacion/listas", label: "Listas restrictivas", icon: ShieldAlert },
-    ],
-  },
+  // La verificación (KYB) y los perfiles de clientes se UNIFICARON en la ficha
+  // del cliente (dentro de "Clientes" → Ver ficha). Ya no hay pestañas sueltas
+  // de "Verificación de clientes" ni "Vinculación KYB"; sus rutas siguen
+  // existiendo por URL pero no se listan.
   {
     label: "Usuarios",
     icon: UserCog,
     recurso: "usuarios",
     items: [
-      { to: "/admin/general/usuarios", label: "Personas físicas", icon: Users },
+      { to: "/admin/general/usuarios", label: "Clientes", icon: Users },
       {
         to: "/admin/administracion/usuarios/operadores",
         label: "Operadores",

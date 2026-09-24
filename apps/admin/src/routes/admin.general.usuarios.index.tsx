@@ -91,18 +91,23 @@ function PersonasFisicasPage() {
     if (!puedeEditar || !c.numeroCuenta) return actions;
 
     if (c.estadoCuenta === "Suspendida" || c.estadoCuenta === "Bloqueada") {
-      actions.push({
-        label: "Reactivar",
-        icon: RotateCcw,
-        onClick: () =>
-          setConfirmAction({
-            title: "Reactivar usuario",
-            message: `¿Reactivar la cuenta de ${c.nombre}? Volverá a poder operar.`,
-            confirmLabel: "Reactivar",
-            variant: "default",
-            onConfirm: () => cambiarEstado(c, "Activa", "Reactivación dispuesta por el operador"),
-          }),
-      });
+      // La activación va atada al KYB: solo se puede reactivar si la verificación
+      // está aprobada. Si no, la cuenta se habilita aprobando el KYB desde la
+      // ficha (Ver ficha → Vinculación KYB), no con un atajo manual.
+      if (c.estadoVerificacion === "Aprobada") {
+        actions.push({
+          label: "Reactivar",
+          icon: RotateCcw,
+          onClick: () =>
+            setConfirmAction({
+              title: "Reactivar usuario",
+              message: `¿Reactivar la cuenta de ${c.nombre}? Volverá a poder operar.`,
+              confirmLabel: "Reactivar",
+              variant: "default",
+              onConfirm: () => cambiarEstado(c, "Activa", "Reactivación dispuesta por el operador"),
+            }),
+        });
+      }
     } else {
       actions.push({
         label: "Suspender",

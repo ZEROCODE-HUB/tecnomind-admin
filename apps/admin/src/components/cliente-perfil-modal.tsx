@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, FileText, ExternalLink, XCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge, Card, Label } from "@/components/portal-shell";
@@ -9,11 +9,13 @@ import {
   tonePorEstado,
   formatARS,
   formatFecha,
+  formatFechaHora,
   formatDocumento,
   mensajeError,
   type Cliente,
 } from "@/lib/clientes";
 import { useMovimientosDeCliente } from "@/lib/movimientos";
+import { useKybDetalle, useResolverKyb, KYB_LABELS, KYB_DOC_LABELS } from "@/lib/kyb";
 
 /**
  * Ficha de cliente. La comparten Verificación > Clientes y General >
@@ -26,6 +28,109 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
       <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
       {/* break-words: un correo largo se montaba sobre la columna de al lado. */}
       <div className="font-medium mt-0.5 break-words">{value}</div>
+    </div>
+  );
+}
+
+/**
+ * Revisión KYB embebida en la ficha del cliente: respuestas del formulario,
+ * documentos (URLs firmadas) y resolución. Aprobar activa la cuenta y notifica
+ * (RPC backoffice_approve_kyb). Reemplaza a la pestaña suelta "Vinculación KYB".
+ */
+function KybReview({ userId }: { userId: string }) {
+  const { can } = useAuth();
+  const puedeResolver = can("verificacion", "update");
+  const detalle = useKybDetalle(userId);
+  const resolver = useResolverKyb();
+  const [notas, setNotas] = useState("");
+  const d = detalle.data;
+
+  const accion = (aprobar: boolean) =>
+    resolver.mutate(
+      { userId, aprobar, notas: notas.trim() || undefined },
+      {
+        onSuccess: () =>
+          toast[aprobar ? "success" : "error"](
+            aprobar ? "KYB aprobado — cuenta activada" : "KYB rechazado",
+          ),
+        onError: (e) => toast.error(mensajeError(e)),
+      },
+    );
+
+  if (detalle.isLoading) {
+    return (
+      <div className="py-6 flex justify-center text-muted-foreground">
+        <Loader2 size={18} className="animate-spin" />
+      </div>
+    );
+  }
+  if (!d) {
+    return (
+      <div className="border border-dashed rounded-lg py-6 text-center text-sm text-muted-foreground">
+        El cliente todavía no envió el formulario de vinculación KYB.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Enviado: {formatFechaHora(d.enviado)}</span>
+        <Badge tone={tonePorEstado(d.estado)}>{d.estado}</Badge>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-x-6 gap-y-3">
+        {Object.keys(KYB_LABELS).map((k) => {
+          const v = d.answers[k];
+          if (v == null || v === "") return null;
+          return <Field key={k} label={KYB_LABELS[k]} value={String(v)} />;
+        })}
+      </div>
+
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Documentos</div>
+        <div className="space-y-1.5">
+          {Object.keys(KYB_DOC_LABELS).map((dt) => {
+            const doc = d.documentos.find((x) => x.docType === dt);
+            return (
+              <div key={dt} className="flex items-center justify-between gap-3 border-b border-border/60 pb-1.5 last:border-0">
+                <span className="text-sm flex items-center gap-2 min-w-0">
+                  <FileText size={14} className="shrink-0 text-muted-foreground" />
+                  <span className="truncate">{KYB_DOC_LABELS[dt]}</span>
+                </span>
+                {doc?.signedUrl ? (
+                  <a href={doc.signedUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline shrink-0">
+                    Ver <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground shrink-0">—</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {puedeResolver && d.estado !== "Aprobada" && (
+        <div className="space-y-2">
+          <textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={2}
+            placeholder="Nota / motivo de rechazo (se le muestra al cliente)…"
+            className="w-full rounded-lg border border-input bg-background text-sm p-3 outline-none focus:ring-2 focus:ring-ring/20 resize-y"
+          />
+          <div className="flex justify-end gap-2">
+            <button type="button" disabled={resolver.isPending} onClick={() => accion(false)} className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+              <XCircle size={14} /> Rechazar
+            </button>
+            <button type="button" disabled={resolver.isPending} onClick={() => accion(true)} className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-moli-red-dark disabled:opacity-50">
+              {resolver.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Aprobar y activar
+            </button>
+          </div>
+        </div>
+      )}
+      {d.notasAdmin && <p className="text-xs text-muted-foreground">Última nota: {d.notasAdmin}</p>}
     </div>
   );
 }
@@ -104,6 +209,13 @@ export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: (
                 <Field label="Motivo del estado" value={cliente.motivoEstadoCuenta} />
               )}
             </div>
+          </Card>
+
+          <Card className="p-5">
+            <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+              Vinculación KYB
+            </h4>
+            <KybReview userId={cliente.id} />
           </Card>
 
           <Card className="p-5">
