@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from "react";
-import { X, Loader2, FileText, ExternalLink, XCircle, CheckCircle2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { X, Loader2, FileText, ExternalLink, XCircle, CheckCircle2, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge, Card, Label } from "@/components/portal-shell";
+import { Badge, Card, Label, Input, BtnPrimary } from "@/components/portal-shell";
 import { useAuth } from "@/contexts/auth";
+import { useLimitsUser, useSetLimitsUser, useResetLimitsUser } from "@/lib/limites";
 import {
   useSetObservaciones,
   tonePorEstado,
@@ -135,6 +136,108 @@ function KybReview({ userId }: { userId: string }) {
   );
 }
 
+/**
+ * Límites de transacción por cliente. Permite fijar montos propios (marca
+ * is_custom=true, no los pisa el global) o volver al global. RPCs 00060.
+ */
+function LimitesCliente({ userId }: { userId: string }) {
+  const { can } = useAuth();
+  const puede = can("usuarios", "update");
+  const q = useLimitsUser(userId);
+  const setL = useSetLimitsUser();
+  const resetL = useResetLimitsUser();
+  const [mensual, setMensual] = useState("");
+  const [diario, setDiario] = useState("");
+  const [operacion, setOperacion] = useState("");
+  useEffect(() => {
+    if (q.data) {
+      setMensual(String(q.data.mensual));
+      setDiario(String(q.data.diario));
+      setOperacion(String(q.data.por_operacion));
+    }
+  }, [q.data]);
+
+  if (q.isLoading) {
+    return (
+      <div className="py-4 flex justify-center text-muted-foreground">
+        <Loader2 size={18} className="animate-spin" />
+      </div>
+    );
+  }
+  if (!q.data) {
+    return (
+      <div className="border border-dashed rounded-lg py-6 text-center text-sm text-muted-foreground">
+        El cliente todavía no tiene cuenta con límites.
+      </div>
+    );
+  }
+
+  const guardar = () => {
+    const m = Number(mensual), d = Number(diario), o = Number(operacion);
+    if ([m, d, o].some((n) => !Number.isFinite(n) || n < 0)) {
+      toast.warning("Ingresá montos válidos (números mayores o iguales a 0).");
+      return;
+    }
+    setL.mutate(
+      { userId, limites: { mensual: m, diario: d, por_operacion: o } },
+      {
+        onSuccess: () => toast.success("Límites del cliente actualizados"),
+        onError: (e) => toast.error(mensajeError(e)),
+      },
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        {q.data.is_custom ? (
+          <Badge tone="warn">Límite personalizado</Badge>
+        ) : (
+          <Badge tone="neutral">Usa el límite global</Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Mensual (COP)
+          <Input inputMode="numeric" value={mensual} onChange={(e) => setMensual(e.target.value)} disabled={!puede} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Diario (COP)
+          <Input inputMode="numeric" value={diario} onChange={(e) => setDiario(e.target.value)} disabled={!puede} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Por operación (COP)
+          <Input inputMode="numeric" value={operacion} onChange={(e) => setOperacion(e.target.value)} disabled={!puede} />
+        </label>
+      </div>
+      <div className="flex items-center gap-3">
+        <BtnPrimary onClick={guardar} disabled={!puede || setL.isPending}>
+          {setL.isPending && <Loader2 size={14} className="animate-spin" />}
+          Guardar límites
+        </BtnPrimary>
+        {q.data.is_custom && (
+          <button
+            type="button"
+            disabled={!puede || resetL.isPending}
+            onClick={() =>
+              resetL.mutate(userId, {
+                onSuccess: () => toast.success("El cliente vuelve al límite global"),
+                onError: (e) => toast.error(mensajeError(e)),
+              })
+            }
+            className="text-sm text-moli-blue hover:underline disabled:opacity-50"
+          >
+            {resetL.isPending ? "Aplicando…" : "Usar límite global"}
+          </button>
+        )}
+      </div>
+      {!puede && (
+        <p className="text-xs text-amber-600">No tenés permiso para editar límites de clientes.</p>
+      )}
+    </div>
+  );
+}
+
 export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: () => void }) {
   const { can } = useAuth();
   const puedeEditar = can("verificacion", "update");
@@ -236,6 +339,13 @@ export function PerfilModal({ cliente, onClose }: { cliente: Cliente; onClose: (
                 El cliente todavía no tiene cuenta creada.
               </div>
             )}
+          </Card>
+
+          <Card className="p-5">
+            <h4 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4 flex items-center gap-2">
+              <SlidersHorizontal size={14} /> Límites de transacción
+            </h4>
+            <LimitesCliente userId={cliente.id} />
           </Card>
 
           <Card className="p-5">

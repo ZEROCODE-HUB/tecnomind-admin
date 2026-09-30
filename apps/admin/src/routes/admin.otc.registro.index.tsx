@@ -56,7 +56,7 @@ function Page() {
   return (
     <div>
       <PageHeader
-        title="Registro de operaciones OTC"
+        title="Registro de operaciones de Cambio Asistido"
         description="Compras y ventas de USDT solicitadas por los clientes."
         action={
           <div className="flex items-center gap-1 rounded-md border border-border p-1 text-sm">

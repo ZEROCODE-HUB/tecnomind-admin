@@ -51,7 +51,7 @@ function Page() {
     <div>
       <PageHeader
         title="Criptos, tasas y comisiones"
-        description="Catálogo de activos OTC. Cada uno con su cotización, comisión y wallet de la empresa."
+        description="Catálogo de activos de Cambio Asistido. Cada uno con su cotización, comisión y wallet de la empresa."
         action={<BtnPrimary type="button" onClick={nuevo}><Plus size={16} /> Nueva cripto</BtnPrimary>}
       />
 

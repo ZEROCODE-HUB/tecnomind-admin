@@ -219,7 +219,7 @@ function Page() {
         {veOtc && (
         <ModuleCard
           icon={ArrowLeftRight}
-          title="Operaciones OTC"
+          title="Operaciones de Cambio Asistido"
           description="Compras y ventas de cripto (USDT) que solicitan los clientes, y el catálogo de criptos con sus tasas y comisiones."
           mainTo="/admin/otc/registro"
           mainLabel="Ir al registro de operaciones"
@@ -290,7 +290,7 @@ function Page() {
           {veOtc && (
             <Cola
               to="/admin/otc/registro"
-              label="OTC por resolver"
+              label="Cambio Asistido por resolver"
               value={nOtcPend}
             />
           )}

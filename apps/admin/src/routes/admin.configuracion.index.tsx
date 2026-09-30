@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { ShieldCheck, Loader2, KeyRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ShieldCheck, Loader2, KeyRound, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Card, Input, BtnPrimary } from "@/components/portal-shell";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import { useDeviceVerificationGlobal, useSetDeviceVerificationGlobal } from "@/lib/seguridad";
+import { useLimitsGlobal, useSetLimitsGlobal } from "@/lib/limites";
 import { mensajeError } from "@/lib/clientes";
 
 export const Route = createFileRoute("/admin/configuracion/")({
@@ -23,6 +24,34 @@ function Page() {
   const q = useDeviceVerificationGlobal();
   const setG = useSetDeviceVerificationGlobal();
   const activo = q.data ?? false;
+
+  // Límites de transacción (global). Los inputs se sincronizan al cargar.
+  const limQ = useLimitsGlobal();
+  const setLim = useSetLimitsGlobal();
+  const [limMensual, setLimMensual] = useState("");
+  const [limDiario, setLimDiario] = useState("");
+  const [limOperacion, setLimOperacion] = useState("");
+  useEffect(() => {
+    if (limQ.data) {
+      setLimMensual(String(limQ.data.mensual));
+      setLimDiario(String(limQ.data.diario));
+      setLimOperacion(String(limQ.data.por_operacion));
+    }
+  }, [limQ.data]);
+  const guardarLimites = () => {
+    const mensual = Number(limMensual), diario = Number(limDiario), por_operacion = Number(limOperacion);
+    if ([mensual, diario, por_operacion].some((n) => !Number.isFinite(n) || n < 0)) {
+      toast.warning("Ingresá montos válidos (números mayores o iguales a 0).");
+      return;
+    }
+    setLim.mutate(
+      { mensual, diario, por_operacion },
+      {
+        onSuccess: () => toast.success("Límites globales actualizados"),
+        onError: (e) => toast.error(mensajeError(e)),
+      },
+    );
+  };
 
   // Cambiar mi propia contraseña (útil sobre todo para operadores que entraron
   // con una contraseña temporal).
@@ -97,6 +126,45 @@ function Page() {
         )}
         {!puede && (
           <p className="text-xs text-amber-600">Solo un administrador puede cambiar esta opción.</p>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-3 max-w-2xl">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal size={18} className="text-moli-blue" />
+          <h3 className="font-display font-semibold">Límites de transacción (global)</h3>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Montos por defecto para todos los clientes. Al guardar se aplican a todos, salvo los que
+          tengan un límite personalizado desde su ficha. El enforcement aplica a transferencias.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Mensual (COP)
+            <Input inputMode="numeric" value={limMensual} onChange={(e) => setLimMensual(e.target.value)} disabled={!puede} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Diario (COP)
+            <Input inputMode="numeric" value={limDiario} onChange={(e) => setLimDiario(e.target.value)} disabled={!puede} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Por operación (COP)
+            <Input inputMode="numeric" value={limOperacion} onChange={(e) => setLimOperacion(e.target.value)} disabled={!puede} />
+          </label>
+        </div>
+        <div className="flex items-center gap-3">
+          <BtnPrimary onClick={guardarLimites} disabled={!puede || limQ.isLoading || setLim.isPending}>
+            {setLim.isPending && <Loader2 size={14} className="animate-spin" />}
+            Guardar límites
+          </BtnPrimary>
+          {limQ.isLoading && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 size={12} className="animate-spin" /> Cargando…
+            </span>
+          )}
+        </div>
+        {!puede && (
+          <p className="text-xs text-amber-600">Solo un administrador puede cambiar los límites globales.</p>
         )}
       </Card>
 

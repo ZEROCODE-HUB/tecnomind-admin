@@ -30,7 +30,7 @@ const KB = [
   {
     keywords: ["navegación", "dónde está", "cómo encuentro", "menú", "sección", "módulo"],
     response:
-      "El panel administrativo está organizado en 4 módulos:\n\n• Verificación de clientes: Perfiles de clientes (consulta de datos, estado de verificación y productos), Revisión de identidad (resultado biométrico Truora, aprobación u observaciones) y Listas restrictivas (filtro de cumplimiento que define si se habilita la cuenta).\n• Gestión de pagos: Solicitudes de pago (listado de operaciones internacionales con factura), Comprobantes (carga y validación del voucher) y Aprobación y rechazo (decisión de cada pago con motivo).\n• Operaciones OTC: Registro de operaciones (solicitudes de compra/venta USDT a pesos) y Control de tasas y montos (el operador carga la tasa y el monto final a entregar).\n• Estadísticas operativas: Depósitos y retiros e Indicadores generales del negocio.",
+      "El panel administrativo está organizado en 4 módulos:\n\n• Verificación de clientes: Perfiles de clientes (consulta de datos, estado de verificación y productos), Revisión de identidad (resultado biométrico Truora, aprobación u observaciones) y Listas restrictivas (filtro de cumplimiento que define si se habilita la cuenta).\n• Gestión de pagos: Solicitudes de pago (listado de operaciones internacionales con factura), Comprobantes (carga y validación del voucher) y Aprobación y rechazo (decisión de cada pago con motivo).\n• Operaciones de Cambio Asistido: Registro de operaciones (solicitudes de compra/venta USDT a pesos) y Control de tasas y montos (el operador carga la tasa y el monto final a entregar).\n• Estadísticas operativas: Depósitos y retiros e Indicadores generales del negocio.",
   },
 ];
 

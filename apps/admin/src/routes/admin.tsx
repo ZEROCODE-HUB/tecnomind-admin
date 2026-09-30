@@ -83,7 +83,7 @@ const NAV_COMPLETO: NavItem[] = [
     ],
   },
   {
-    label: "Operaciones OTC",
+    label: "Operaciones de Cambio Asistido",
     icon: ArrowLeftRight,
     recurso: "otc",
     items: [
