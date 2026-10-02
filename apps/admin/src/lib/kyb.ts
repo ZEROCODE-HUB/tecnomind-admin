@@ -38,6 +38,8 @@ export type KybRow = {
 
 export type KybDoc = { docType: string; fileName: string | null; signedUrl: string | null };
 
+export type FacialEstado = "none" | "submitted" | "approved" | "rejected";
+
 export type KybDetalle = {
   userId: string;
   estado: KybEstado;
@@ -46,6 +48,7 @@ export type KybDetalle = {
   notasAdmin: string | null;
   usuario: { nombre: string; email: string } | null;
   documentos: KybDoc[];
+  facialStatus: FacialEstado;
 };
 
 // Etiquetas legibles del cuestionario (espejo de la app).
@@ -137,10 +140,11 @@ export function useKybDetalle(userId: string | undefined) {
       if (error) throw error;
       if (!sub) return null;
 
-      // Datos del usuario (nombre/email) desde la vista del backoffice.
+      // Datos del usuario (nombre/email) + estado de la verificación facial
+      // (paso 2) desde la vista del backoffice.
       const { data: cli } = await db
         .from("backoffice_clients")
-        .select("full_name,email")
+        .select("full_name,email,facial_status")
         .eq("id", userId!)
         .maybeSingle();
 
@@ -165,6 +169,7 @@ export function useKybDetalle(userId: string | undefined) {
         notasAdmin: sub.admin_notes,
         usuario: cli ? { nombre: cli.full_name ?? "—", email: cli.email } : null,
         documentos,
+        facialStatus: ((cli?.facial_status as FacialEstado) ?? "none"),
       };
     },
   });
@@ -183,6 +188,31 @@ export function useResolverKyb() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["backoffice", "kyb"] });
+      void qc.invalidateQueries({ queryKey: ["backoffice", "clientes"] });
+    },
+  });
+}
+
+/**
+ * Override manual de la verificación facial (paso 2). Normalmente se aprueba
+ * sola con el webhook de ZapSign; esto permite al operador forzar aprobación o
+ * rechazo. Al aprobar, si el formulario ya está aprobado, el backend finaliza la
+ * verificación (verified + cuenta activa + notificación).
+ */
+export function useResolverFacial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { userId: string; aprobar: boolean; notas?: string }) => {
+      const { error } = await db.rpc("backoffice_approve_facial", {
+        p_user_id: v.userId,
+        p_approve: v.aprobar,
+        p_notes: v.notas ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: ["backoffice", "kyb"] });
+      void qc.invalidateQueries({ queryKey: ["backoffice", "kyb", v.userId] });
       void qc.invalidateQueries({ queryKey: ["backoffice", "clientes"] });
     },
   });

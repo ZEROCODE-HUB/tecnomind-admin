@@ -16,7 +16,7 @@ import {
   type Cliente,
 } from "@/lib/clientes";
 import { useMovimientosDeCliente } from "@/lib/movimientos";
-import { useKybDetalle, useResolverKyb, KYB_LABELS, KYB_DOC_LABELS } from "@/lib/kyb";
+import { useKybDetalle, useResolverKyb, useResolverFacial, KYB_LABELS, KYB_DOC_LABELS, type FacialEstado } from "@/lib/kyb";
 
 /**
  * Ficha de cliente. La comparten Verificación > Clientes y General >
@@ -38,11 +38,19 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
  * documentos (URLs firmadas) y resolución. Aprobar activa la cuenta y notifica
  * (RPC backoffice_approve_kyb). Reemplaza a la pestaña suelta "Vinculación KYB".
  */
+const FACIAL_UI: Record<FacialEstado, { label: string; tone: "neutral" | "success" | "warn" | "danger" }> = {
+  none: { label: "Sin iniciar", tone: "neutral" },
+  submitted: { label: "Procesando", tone: "warn" },
+  approved: { label: "Aprobada", tone: "success" },
+  rejected: { label: "Rechazada", tone: "danger" },
+};
+
 function KybReview({ userId }: { userId: string }) {
   const { can } = useAuth();
   const puedeResolver = can("verificacion", "update");
   const detalle = useKybDetalle(userId);
   const resolver = useResolverKyb();
+  const facialResolver = useResolverFacial();
   const [notas, setNotas] = useState("");
   const d = detalle.data;
 
@@ -52,7 +60,19 @@ function KybReview({ userId }: { userId: string }) {
       {
         onSuccess: () =>
           toast[aprobar ? "success" : "error"](
-            aprobar ? "KYB aprobado — cuenta activada" : "KYB rechazado",
+            aprobar ? "Formulario aprobado · se habilita la verificación facial" : "Formulario rechazado",
+          ),
+        onError: (e) => toast.error(mensajeError(e)),
+      },
+    );
+
+  const accionFacial = (aprobar: boolean) =>
+    facialResolver.mutate(
+      { userId, aprobar, notas: notas.trim() || undefined },
+      {
+        onSuccess: () =>
+          toast[aprobar ? "success" : "error"](
+            aprobar ? "Verificación facial aprobada" : "Verificación facial rechazada",
           ),
         onError: (e) => toast.error(mensajeError(e)),
       },
@@ -131,6 +151,29 @@ function KybReview({ userId }: { userId: string }) {
           </div>
         </div>
       )}
+
+      {/* Paso 2 — verificación facial (ZapSign). Se aprueba sola al completarla en
+          la app; acá el operador puede forzar aprobación/rechazo "por si acaso". */}
+      <div className="border-t border-border/60 pt-4 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Verificación facial (paso 2)</div>
+            <p className="text-xs text-muted-foreground mt-0.5">Se aprueba automáticamente al completarla en la app. Podés forzarla manualmente.</p>
+          </div>
+          <Badge tone={FACIAL_UI[d.facialStatus].tone}>{FACIAL_UI[d.facialStatus].label}</Badge>
+        </div>
+        {puedeResolver && (
+          <div className="flex justify-end gap-2">
+            <button type="button" disabled={facialResolver.isPending || d.facialStatus === "rejected"} onClick={() => accionFacial(false)} className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+              <XCircle size={14} /> Rechazar
+            </button>
+            <button type="button" disabled={facialResolver.isPending || d.facialStatus === "approved"} onClick={() => accionFacial(true)} className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-moli-red-dark disabled:opacity-50">
+              {facialResolver.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Aprobar facial
+            </button>
+          </div>
+        )}
+      </div>
+
       {d.notasAdmin && <p className="text-xs text-muted-foreground">Última nota: {d.notasAdmin}</p>}
     </div>
   );
