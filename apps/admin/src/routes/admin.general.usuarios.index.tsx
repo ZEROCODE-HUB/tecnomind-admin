@@ -165,6 +165,19 @@ function PersonasFisicasPage() {
       ),
     },
     {
+      key: "kyb",
+      label: "Vinculación KYB",
+      render: (c) => {
+        const k = kybDe(c);
+        return <Badge tone={tonePorEstado(k)}>{k}</Badge>;
+      },
+    },
+    {
+      key: "facial",
+      label: "Verificación facial",
+      render: (c) => <Badge tone={tonePorEstado(c.estadoFacial)}>{c.estadoFacial}</Badge>,
+    },
+    {
       key: "estado",
       label: "Estado",
       filterable: "enum",
@@ -172,14 +185,6 @@ function PersonasFisicasPage() {
       render: (c) => {
         const e = estadoDe(c);
         return <Badge tone={tonePorEstado(e)}>{e}</Badge>;
-      },
-    },
-    {
-      key: "kyb",
-      label: "Vinculación KYB",
-      render: (c) => {
-        const k = kybDe(c);
-        return <Badge tone={tonePorEstado(k)}>{k}</Badge>;
       },
     },
     {
