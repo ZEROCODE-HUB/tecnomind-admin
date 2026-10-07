@@ -59,6 +59,24 @@ const VERIFICACION_A_DB: Record<EstadoVerificacion, string> = {
   Rechazada: "rejected",
 };
 
+// Paso 1 (formulario KYB) y paso 2 (verificación facial) usan el mismo
+// vocabulario de 4 estados que la verificación general, para que compartan
+// badge (tonePorEstado) y filtros (ESTADOS_VERIFICACION). Los valores crudos
+// vienen de kyb_submissions.status y users.facial_status; "sin iniciar"
+// (null/draft/none) se lee como "Pendiente".
+const KYB_A_UI: Record<string, EstadoVerificacion> = {
+  draft: "Pendiente",
+  submitted: "En revisión",
+  approved: "Aprobada",
+  rejected: "Rechazada",
+};
+const FACIAL_A_UI: Record<string, EstadoVerificacion> = {
+  none: "Pendiente",
+  submitted: "En revisión",
+  approved: "Aprobada",
+  rejected: "Rechazada",
+};
+
 const CUMPLIMIENTO_A_UI: Record<string, EstadoCumplimiento> = {
   pending: "Pendiente",
   in_review: "En revisión",
@@ -161,6 +179,8 @@ export type Cliente = {
   pais: string;
   fechaRegistro: string;
   estadoVerificacion: EstadoVerificacion;
+  estadoKyb: EstadoVerificacion;
+  estadoFacial: EstadoVerificacion;
   estadoCumplimiento: EstadoCumplimiento;
   estadoCuenta: EstadoCuenta;
   observaciones: string;
@@ -183,6 +203,8 @@ type FilaCliente = {
   tax_id: string;
   country_code: string | null;
   verification_status: string | null;
+  kyb_status: string | null;
+  facial_status: string | null;
   role: string;
   created_at: string | null;
   account_number: string | null;
@@ -199,7 +221,7 @@ type FilaCliente = {
 
 const CAMPOS_CLIENTE =
   "id, full_name, email, phone, document_type, document_number, tax_id, country_code, " +
-  "verification_status, role, created_at, account_number, alias, balance, account_status, " +
+  "verification_status, kyb_status, facial_status, role, created_at, account_number, alias, balance, account_status, " +
   "account_status_reason, compliance_status, compliance_notes, kyc_score, kyc_provider, is_operator";
 
 function aCliente(f: FilaCliente): Cliente {
@@ -214,6 +236,8 @@ function aCliente(f: FilaCliente): Cliente {
     pais: f.country_code ?? "AR",
     fechaRegistro: f.created_at ?? "",
     estadoVerificacion: VERIFICACION_A_UI[f.verification_status ?? "pending"] ?? "Pendiente",
+    estadoKyb: KYB_A_UI[f.kyb_status ?? "draft"] ?? "Pendiente",
+    estadoFacial: FACIAL_A_UI[f.facial_status ?? "none"] ?? "Pendiente",
     estadoCumplimiento: CUMPLIMIENTO_A_UI[f.compliance_status ?? "pending"] ?? "Pendiente",
     // Sin cuenta creada el cliente todavía no está habilitado a operar.
     estadoCuenta: f.account_status
