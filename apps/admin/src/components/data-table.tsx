@@ -10,6 +10,10 @@ export type Column<T> = {
   sortable?: boolean;
   filterable?: boolean | FilterType;
   filterOptions?: string[];
+  // Valor para filtrar/ordenar cuando la columna NO mapea a un campo con el
+  // mismo `key` en la fila (su `render` deriva el valor y devuelve JSX). Sin
+  // esto, el filtro enum compara contra un campo inexistente y no matchea nada.
+  filterValue?: (row: T) => string;
   render: (row: T) => ReactNode;
 };
 
@@ -166,6 +170,10 @@ export function DataTable<T>({
         if (!value) continue;
         const col = columns.find((c) => c.key === key);
         if (!col) continue;
+        if (col.filterValue) {
+          if (col.filterValue(row) !== value) return false;
+          continue;
+        }
         const raw = (row as Record<string, unknown>)[col.key];
         const rendered = col.render(row);
         const renderedText =

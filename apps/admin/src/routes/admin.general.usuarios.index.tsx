@@ -182,6 +182,7 @@ function PersonasFisicasPage() {
       label: "Estado",
       filterable: "enum",
       filterOptions: ESTADOS,
+      filterValue: (c) => estadoDe(c),
       render: (c) => {
         const e = estadoDe(c);
         // "Sin activar" contiene "activar" y tonePorEstado lo pintaría como
