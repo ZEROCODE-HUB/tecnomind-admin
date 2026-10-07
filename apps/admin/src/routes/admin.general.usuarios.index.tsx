@@ -32,7 +32,7 @@ export const Route = createFileRoute("/admin/general/usuarios/")({
  * son dos campos distintos porque responden a procesos distintos.
  */
 function estadoDe(c: Cliente): string {
-  if (c.estadoCuenta === "Bloqueada") return "Bloqueado";
+  if (c.estadoCuenta === "Bloqueada") return "Sin activar";
   if (c.estadoCuenta === "Suspendida") return "Suspendido";
   if (c.estadoCuenta === "Cerrada") return "Deshabilitado";
   if (c.estadoVerificacion === "Rechazada") return "Rechazado";
@@ -47,7 +47,7 @@ const ESTADOS = [
   "Activado",
   "Rechazado",
   "Suspendido",
-  "Bloqueado",
+  "Sin activar",
   "Deshabilitado",
 ];
 
@@ -184,7 +184,10 @@ function PersonasFisicasPage() {
       filterOptions: ESTADOS,
       render: (c) => {
         const e = estadoDe(c);
-        return <Badge tone={tonePorEstado(e)}>{e}</Badge>;
+        // "Sin activar" contiene "activar" y tonePorEstado lo pintaría como
+        // activo (verde); le fijamos el tono de atención a mano.
+        const tone = e === "Sin activar" ? "warn" : tonePorEstado(e);
+        return <Badge tone={tone}>{e}</Badge>;
       },
     },
     {
